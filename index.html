@@ -203,10 +203,10 @@ const MACHINES=[
   flags:{user:'VULN{ftp_an0nimo_act1vado}',root:'VULN{arch1v0_c0ntr4s3n4}',sys:'VULN{vsftpd_3.0.3}'},
   cmds:{
     'nmap':['dim:Starting Nmap 7.94','21/tcp open  ftp  vsftpd 3.0.3','ok:|_ftp-anon: Anonymous FTP login allowed','info:💡 Prueba: ftp 10.10.10.6','flagS:⚠ FLAG SISTEMA (banner vsftpd) → VULN{vsftpd_3.0.3}'],
-    'ftp':['ok:220 (vsFTPd 3.0.3) — anonymous login OK','dim:-rwxr-xr-x flag.txt\n-rwxr-xr-x backup.txt','flagU:🚩 (al leer flag.txt) FLAG USER → VULN{ftp_an0nimo_act1vado}','info:💡 Ahora: cat backup.txt'],
+    'ftp':['ok:220 (vsFTPd 3.0.3) — anonymous login OK','dim:-rwxr-xr-x user.txt\n-rwxr-xr-x backup.txt','flagU:🚩 (user.txt descargado del FTP) FLAG USER → VULN{ftp_an0nimo_act1vado}','info:💡 Ahora: cat backup.txt — la flag root se revela al leerlo'],
     'cat':['flagR:🚩 FLAG ROOT → VULN{arch1v0_c0ntr4s3n4}']
   },
-  writeup:['FTP anónimo: violación directa del pilar de Confidencialidad (M01).','<code>ls</code> + <code>get</code> para descargar <code>flag.txt</code> y <code>backup.txt</code>.','backup.txt contiene una contraseña en claro.','Lección M01: la enumeración paciente encuentra la vía de entrada.']
+  writeup:['FTP anónimo: violación directa del pilar de Confidencialidad (M01).','<code>ls</code> + <code>get</code> para descargar <code>user.txt</code> y <code>backup.txt</code>.','backup.txt contiene una contraseña en claro.','Lección M01: la enumeración paciente encuentra la vía de entrada.']
 },
 {
   id:'brutix', name:'Brutix', ip:'10.10.10.11', os:'Linux', mod:'M02', diff:'easy',
@@ -215,7 +215,7 @@ const MACHINES=[
   flags:{user:'VULN{hydr4_ssh_w34k_p4ss}',root:'VULN{p0l1t1c4_c0ntr4s3n4}',sys:'VULN{0p3nssh_7.2p1}'},
   cmds:{
     'nmap':['22/tcp open  ssh  OpenSSH 7.2p1','info:💡 SSH expuesto. Prueba: hydra','flagS:⚠ FLAG SISTEMA (banner OpenSSH) → VULN{0p3nssh_7.2p1}'],
-    'hydra':['dim:[ATTEMPT] target 10.10.10.11 - login "admin" - pass "123456"','ok:[22][ssh] host: 10.10.10.11  login: admin   password: Winter2026!','flagU:🚩 FLAG USER → VULN{hydr4_ssh_w34k_p4ss}','info:💡 Ahora: cat /etc/login.defs'],
+    'hydra':['dim:[ATTEMPT] target 10.10.10.11 - login "admin" - pass "123456"','ok:[22][ssh] host: 10.10.10.11  login: admin   password: Winter2026!','ok:[*] Sesión SSH abierta como admin — shell en 10.10.10.11','flagU:🚩 FLAG USER → VULN{hydr4_ssh_w34k_p4ss}','info:💡 La flag user está en el archivo user.txt: cat user.txt · después revisa la política: cat /etc/login.defs'],
     'cat':['err:# PASS_MAX_DAYS 99999  ← contraseñas eternas','# minlen = 0  ← sin política','flagR:🚩 FLAG ROOT (política inexistente) → VULN{p0l1t1c4_c0ntr4s3n4}']
   },
   writeup:['<code>hydra -l admin -P rockyou.txt ssh://10.10.10.11</code>: la contraseña aparece en 4 minutos.','Contraseña + política inexistente = doble fallo de hardening (M02).','Lección: bloqueo por intentos, MFA y política de contraseñas.']
@@ -961,9 +961,15 @@ function runCmd(raw){
   const verb=parts[0];
   const fileArg=(parts[1]||'').replace(/^\.?\//,'');
 
-  /* flags como archivos del host, estilo HTB: cat user.txt / cat root.txt */
-  if(verb==='cat'&&(fileArg==='user.txt'||fileArg==='root.txt')){
-    const kind=fileArg==='user.txt'?'user':'root';
+  /* flags como archivos del host, estilo HTB: cat user.txt / cat root.txt (o cualquier ruta que acabe así) */
+  if(verb==='cat'&&/(^|\/)(user|root)\.txt$|(^|\/)flag\.txt$/.test(fileArg)){
+    const kind=/user\.txt$/.test(fileArg)?'user':'root';
+    if(!pendingFlags[kind]&&shell&&m.cmds['cat']){
+      /* sin leer aún: ejecutar el 'cat' registrado de la máquina deposita la flag en el archivo */
+      m.cmds['cat'].forEach(l=>{ const fm=l.match(/VULN\{[^}]+\}/);
+        if(l.startsWith('flagU:')&&fm) pendingFlags.user=fm[0];
+        if(l.startsWith('flagR:')&&fm) pendingFlags.root=fm[0]; });
+    }
     if(pendingFlags[kind]) tline(pendingFlags[kind],'flag');
     else tline('cat: '+fileArg+': No such file or directory','err');
     return;
@@ -1058,6 +1064,7 @@ function runCmd(raw){
   /* ejecutar: pistas ð¡ ocultas (hint), flags user/root ocultas en archivos */
   pendingHints=[];
   const outs=m.cmds[key];
+  const preU=pendingFlags.user, preR=pendingFlags.root;
   outs.forEach(l=>{
     if(l.startsWith('info:ð¡')){ pendingHints.push(l.slice(6).trim()); return; }
     const fm=l.match(/VULN\{[^}]+\}/);
@@ -1071,6 +1078,8 @@ function runCmd(raw){
     else if(l.startsWith('flagS:')){ cls='flag'; l=l.slice(6); }
     tline(l,cls);
   });
+  if(!preU&&pendingFlags.user) tline('# [*] flag USER guardada en user.txt — léela con: cat user.txt','dim');
+  if(!preR&&pendingFlags.root) tline('# [*] flag ROOT guardada en root.txt — léela con: cat root.txt','dim');
   if(accessGained(outs)&&!shell){
     shell={machine:m.id,user:hostUser(m)};
     tline(' ','dim');
