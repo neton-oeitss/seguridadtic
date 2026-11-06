@@ -124,10 +124,9 @@
 <script>
 /* =========================================================
    VulnLab — CTF estático estilo HTB · Curso TIC 30h
-   16 máquinas, cada una centrada en una herramienta:
-   nmap, hydra, john, hashcat, metasploit, nikto, gobuster,
-   sqlmap, burp, suricata, wireshark, wazuh, responder,
-   searchsploit, nc, docker. Todo en localStorage.
+   Máquinas centradas en herramientas (nmap, hydra, Metasploit, Wireshark, Volatility…)
+   e incidente completo M08: contención, erradicación, recuperación y forense de RAM.
+   Todo en localStorage.
    Fines exclusivamente educativos.
 ========================================================= */
 
@@ -203,10 +202,10 @@ const MACHINES=[
   flags:{user:'VULN{ftp_an0nimo_act1vado}',root:'VULN{arch1v0_c0ntr4s3n4}',sys:'VULN{vsftpd_3.0.3}'},
   cmds:{
     'nmap':['dim:Starting Nmap 7.94','21/tcp open  ftp  vsftpd 3.0.3','ok:|_ftp-anon: Anonymous FTP login allowed','info:💡 Prueba: ftp 10.10.10.6','flagS:⚠ FLAG SISTEMA (banner vsftpd) → VULN{vsftpd_3.0.3}'],
-    'ftp':['ok:220 (vsFTPd 3.0.3) — anonymous login OK','dim:-rwxr-xr-x user.txt\n-rwxr-xr-x backup.txt','flagU:🚩 (user.txt descargado del FTP) FLAG USER → VULN{ftp_an0nimo_act1vado}','info:💡 Ahora: cat backup.txt — la flag root se revela al leerlo'],
+    'ftp':['ok:220 (vsFTPd 3.0.3) — anonymous login OK','dim:-rwxr-xr-x flag.txt\n-rwxr-xr-x backup.txt','flagU:🚩 (al leer flag.txt) FLAG USER → VULN{ftp_an0nimo_act1vado}','info:💡 Ahora: cat backup.txt'],
     'cat':['flagR:🚩 FLAG ROOT → VULN{arch1v0_c0ntr4s3n4}']
   },
-  writeup:['FTP anónimo: violación directa del pilar de Confidencialidad (M01).','<code>ls</code> + <code>get</code> para descargar <code>user.txt</code> y <code>backup.txt</code>.','backup.txt contiene una contraseña en claro.','Lección M01: la enumeración paciente encuentra la vía de entrada.']
+  writeup:['FTP anónimo: violación directa del pilar de Confidencialidad (M01).','<code>ls</code> + <code>get</code> para descargar <code>flag.txt</code> y <code>backup.txt</code>.','backup.txt contiene una contraseña en claro.','Lección M01: la enumeración paciente encuentra la vía de entrada.']
 },
 {
   id:'brutix', name:'Brutix', ip:'10.10.10.11', os:'Linux', mod:'M02', diff:'easy',
@@ -215,7 +214,7 @@ const MACHINES=[
   flags:{user:'VULN{hydr4_ssh_w34k_p4ss}',root:'VULN{p0l1t1c4_c0ntr4s3n4}',sys:'VULN{0p3nssh_7.2p1}'},
   cmds:{
     'nmap':['22/tcp open  ssh  OpenSSH 7.2p1','info:💡 SSH expuesto. Prueba: hydra','flagS:⚠ FLAG SISTEMA (banner OpenSSH) → VULN{0p3nssh_7.2p1}'],
-    'hydra':['dim:[ATTEMPT] target 10.10.10.11 - login "admin" - pass "123456"','ok:[22][ssh] host: 10.10.10.11  login: admin   password: Winter2026!','ok:[*] Sesión SSH abierta como admin — shell en 10.10.10.11','flagU:🚩 FLAG USER → VULN{hydr4_ssh_w34k_p4ss}','info:💡 La flag user está en el archivo user.txt: cat user.txt · después revisa la política: cat /etc/login.defs'],
+    'hydra':['dim:[ATTEMPT] target 10.10.10.11 - login "admin" - pass "123456"','ok:[22][ssh] host: 10.10.10.11  login: admin   password: Winter2026!','flagU:🚩 FLAG USER → VULN{hydr4_ssh_w34k_p4ss}','info:💡 Ahora: cat /etc/login.defs'],
     'cat':['err:# PASS_MAX_DAYS 99999  ← contraseñas eternas','# minlen = 0  ← sin política','flagR:🚩 FLAG ROOT (política inexistente) → VULN{p0l1t1c4_c0ntr4s3n4}']
   },
   writeup:['<code>hydra -l admin -P rockyou.txt ssh://10.10.10.11</code>: la contraseña aparece en 4 minutos.','Contraseña + política inexistente = doble fallo de hardening (M02).','Lección: bloqueo por intentos, MFA y política de contraseñas.']
@@ -553,6 +552,55 @@ const MACHINES=[
   writeup:['Análisis estático: PE empaquetado con UPX, mutex anti-duplicado.','Persistencia vía <code>Run</code> del registro: se ejecuta en cada arranque.','VirusTotal + IOCs: dominio C2 y familia (Sality).','Lección M08: aísla en VM/sandbox, extrae IOCs y compártelos con el SOC — nunca ejecutes en tu equipo.']
 },
 {
+  id:'containment', name:'ContainIt', ip:'10.10.10.30 · SRV-FIN01', os:'IR', mod:'M08', diff:'medium',
+  tools:['edr','volatility','iptables'], xp:{user:30,root:45,sys:15},
+  tag:'Fase de CONTENCIÓN: ransomware activo en un servidor financiero. Aislar sin apagar, capturar evidencia volátil y cortar el C2',
+  flags:{user:'VULN{1s04m13nt0_3dr_s1n_4p4g4r}',root:'VULN{bl0qu30_c2_p3r1m3tr0}',sys:'VULN{c4ptur4_R4M_4nt3s_d3_t0c4r}'},
+  cmds:{
+    'edr':['err:🚨 ALERTA EDR: Ransom.Cryptolockr ejecutándose en SRV-FIN01','ok:Acción: ISOLATE host → SRV-FIN01 aislado de la red (encendido)','info:💡 Regla de oro: aislar SIN apagar — la RAM guarda la evidencia','flagU:🚩 FLAG USER (host aislado sin apagar) → VULN{1s04m13nt0_3dr_s1n_4p4g4r}','info:💡 Captura la memoria antes de tocar nada: volatility'],
+    'volatility':['dim:volatility -f mem-srvfin01.raw windows.netscan','err:Conexión activa a 185.22.14.99:443 — C2 del ransomware confirmado','ok:Snapshot de memoria + conexiones exportadas al caso (cadena de custodia)','flagS:⚠ FLAG SISTEMA (evidencia volátil capturada primero) → VULN{c4ptur4_R4M_4nt3s_d3_t0c4r}','info:💡 Corta el C2 en el perímetro: iptables'],
+    'iptables':['dim:iptables -A FORWARD -d 185.22.14.99 -j DROP','ok:DNS sinkhole: cdncache-secure.top → 0.0.0.0','ok:Cuentas comprometidas deshabilitadas: jfp, svc_backup','flagR:🚩 FLAG ROOT (C2 bloqueado, cuentas frenadas) → VULN{bl0qu30_c2_p3r1m3tr0}']
+  },
+  writeup:['Contención NIST: frenar el daño sin destruir la evidencia.','Aislar por EDR/VLAN manteniendo el host encendido: la RAM es la escena del crimen.','<code>netscan</code> confirma el C2; se bloquea en firewall y con DNS sinkhole.','Se deshabilitan las cuentas comprometidas para cortar el movimiento lateral.','Lección M08: apagar = perder la memoria. Aísla primero, captura después, apaga solo si no queda otra.']
+},
+{
+  id:'eradication', name:'WipeOut', ip:'10.10.10.30 · post-contención', os:'IR', mod:'M08', diff:'hard',
+  tools:['taskkill','reg','schtasks','edr'], xp:{user:45,root:60,sys:20},
+  tag:'Fase de ERRADICACIÓN: eliminar el malware y TODA su persistencia, parchear el vector de entrada y rotar credenciales',
+  flags:{user:'VULN{pr0c3s0s_m4l1c10s0s_m4t4d0s}',root:'VULN{p3rs1st3nc14_t0t4l_l1mpi4d4}',sys:'VULN{v3ct0r_p4rch34d0_r0t4d0}'},
+  cmds:{
+    'taskkill':['dim:taskkill /PID 4188 /F  ·  taskkill /IM svch0st.exe /F','ok:Procesos maliciosos terminados (svch0st.exe, encryptor.exe)','info:💡 Matar el proceso no basta: busca la persistencia','flagU:🚩 FLAG USER (procesos eliminados) → VULN{pr0c3s0s_m4l1c10s0s_m4t4d0s}','info:💡 Busca dónde sobrevive al reinicio: reg'],
+    'reg':['dim:reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"','err:OneDriveSync → C:\\Users\\jfp\\AppData\\Temp\\svch0st.exe  ← persistencia','ok:reg delete ... /v OneDriveSync /f — eliminada','err:schtasks /query → tarea "SyncHealth" cada 30 min — eliminada también','flagR:🚩 FLAG ROOT (persistencia en Run + tarea programada) → VULN{p3rs1st3nc14_t0t4l_l1mpi4d4}','info:💡 Cierra la puerta: parchea el vector y rota credenciales: edr'],
+    'edr':['err:Vector de entrada: RDP expuesto + contraseña de jfp en diccionario','ok:RDP limitado por VPN + MFA · contraseñas y hashes de servicio ROTADOS','ok:Re-escaneo EDR: limpio, sin rastros de svch0st.exe','flagS:⚠ FLAG SISTEMA (vector cerrado y credenciales rotadas) → VULN{v3ct0r_p4rch34d0_r0t4d0}']
+  },
+  writeup:['Erradicar = eliminar malware + persistencia + causa raíz, no solo el síntoma.','<code>taskkill</code> mata el proceso, pero la persistencia (clave Run, tarea programada) lo revive al reiniciar.','El vector real era RDP con contraseña débil: se cierra con VPN + MFA.','Se rotan TODAS las credenciales comprometidas (usuario, servicio, krbtgt si aplica).','Lección M08: erradicación incompleta = reinfección en 24h. Re-escanea y verifica cero antes de recuperar.']
+},
+{
+  id:'recovery', name:'RiseUp', ip:'10.10.10.30 · restauración', os:'IR', mod:'M08', diff:'medium',
+  tools:['restore','edr','wireshark'], xp:{user:30,root:45,sys:15},
+  tag:'Fase de RECUPERACIÓN: restaurar desde backup offline limpio, verificar integridad, vigilancia intensificada y lecciones aprendidas',
+  flags:{user:'VULN{b4ckup_0ffl1n3_r3st0r4d0}',root:'VULN{r3c0v3r4d0_v3r1f1c4d0}',sys:'VULN{p0st_m0rt3m_l3cc10n3s}'},
+  cmds:{
+    'restore':['dim:Backup offline del domingo 23:00 (anterior a la intrusión del martes)','ok:Discos reformateados → imagen limpia restaurada en SRV-FIN01','err:⚠ Nunca restaurar sobre discos infectados sin formatear','flagU:🚩 FLAG USER (restauración desde backup offline) → VULN{b4ckup_0ffl1n3_r3st0r4d0}','info:💡 Antes de reconectar: verifica: edr'],
+    'edr':['dim:Escaneo completo + comparación de hashes con baseline (sha256)','ok:0 IOCs del incidente · parches al día · servicios endurecidos','ok:SRV-FIN01 reconectado a la VLAN de producción','flagR:🚩 FLAG ROOT (sistema verificado y de vuelta en producción) → VULN{r3c0v3r4d0_v3r1f1c4d0}','info:💡 Vigila de cerca el tráfico: wireshark'],
+    'wireshark':['dim:Monitorización intensificada 2 semanas: full pcap en la VLAN financiera','ok:Sin conexiones a IPs/dominios IOC · comportamiento normal','ok:Post-mortem: backup offline diario + EDR + VPN/MFA en RDP aprobado','flagS:⚠ FLAG SISTEMA (lecciones aprendidas cerradas) → VULN{p0st_m0rt3m_l3cc10n3s}']
+  },
+  writeup:['Recuperar solo desde backups offline verificados: los online ya estaban cifrados por el ransomware.','Se formatea antes de restaurar: no se recicla disco infectado.','Verificación: escaneo EDR + comparación con baseline antes de reconectar a producción.','Vigilancia intensificada temporal: la reinfección temprana es típica si queda algo.','Lección M08: el post-mortem (lecciones aprendidas) cierra el ciclo NIST y alimenta la PREPARACIÓN del siguiente incidente.']
+},
+{
+  id:'ramdump', name:'RAMVault', ip:'evidencia: RAM en vivo del puesto FIN-07', os:'Forense', mod:'M08', diff:'medium',
+  tools:['winpmem','volatility','malfind','netscan'], xp:{user:30,root:45,sys:15},
+  tag:'Cómo se extrae la información de la RAM: volcado en vivo de memoria y análisis con plugins de Volatility (procesos, inyecciones, red y credenciales)',
+  flags:{user:'VULN{w1npm3m_d0mp_R4M_l1v0}',root:'VULN{m4lf1nd_sh3llc0d3_1ny3ct4d0}',sys:'VULN{h4shdump_p4ssw0rds_3n_R4M}'},
+  cmds:{
+    'winpmem':['dim:winpmem_small_x64.exe mem-raw.dump — adquiriendo memoria física…','ok:Dump completo: 8 GB en 3 min · hash SHA-256 registrado (cadena de custodia)','info:💡 La RAM se copia EN VIVO con herramientas read-only: apagar la destruye','flagU:🚩 FLAG USER (RAM volcada sin alterarla) → VULN{w1npm3m_d0mp_R4M_l1v0}','info:💡 Busca código inyectado en procesos legítimos: malfind'],
+    'malfind':['dim:volatility -f mem-raw.dump windows.malfind','err:PID 2144 explorer.exe — VAD con protección RWX: shellcode inyectado','ok:Bytes extraídos → hash coincide con la muestra Sality del caso','flagR:🚩 FLAG ROOT (shellcode inyectado en proceso legítimo) → VULN{m4lf1nd_sh3llc0d3_1ny3ct4d0}','info:💡 La RAM también guarda red y credenciales: netscan'],
+    'netscan':['dim:volatility -f mem-raw.dump windows.netscan','err:Conexión oculta a 185.22.14.99:443 no visible en netstat del host','ok:Conexiones y sockets cerrados (histórico) reconstruidos desde la memoria','info:💡 Saca las credenciales que viven en RAM: hashdump'],
+    'hashdump':['dim:volatility -f mem-raw.dump windows.hashdump','err:Hashes NTLM de todos los usuarios extraídos de LSASS en la RAM','ok:Contraseñas cacheadas y cookies de sesión también residían en memoria','flagS:⚠ FLAG SISTEMA (credenciales viviendo en RAM) → VULN{h4shdump_p4ssw0rds_3n_R4M}']
+  },
+  writeup:['La RAM se adquiere EN VIVO con herramientas como <code>winpmem</code>, DumpIt o el propio EDR: nunca apagando el equipo.','La memoria contiene procesos, conexiones (incluso cerradas), claves del registro, credenciales y fragmentos de archivos.','<code>malfind</code> detecta shellcode inyectado en procesos legítimos (regiones RWX).','<code>netscan</code> reconstruye conexiones que <code>netstat</code> ya no muestra.','<code>hashdump</code> saca los hashes de LSASS: por eso la RAM es oro forense… y un riesgo si el equipo cae en manos equivocadas.','Lección M08: orden forense: RAM primero → disco después. Hashea cada artefacto para la cadena de custodia.']
+},
+{
   id:'admap', name:'DomainWalk', ip:'10.10.12.9', os:'Windows AD', mod:'M04', diff:'hard',
   tools:['nmap','mimikatz','responder'], xp:{user:45,root:60,sys:20},
   tag:'Enumeración de Active Directory: Kerberoasting de cuentas de servicio y escalada al dominio',
@@ -725,7 +773,7 @@ const MACHINES=[
 }
 ];
 
-const TOOLS=['nmap','hydra','john','hashcat','mimikatz','metasploit','burp','repeater','intruder','decoder','ghidra','strings','nuclei','aircrack-ng','airmon-ng','airodump','steghide','binwalk','git','kerberoast','virustotal','ssh','openssl','rpcclient','impacket','secretsdump','wpscan','redis-cli','mongodump','groovy','msiexec','vncviewer','volatility','autopsy','grep','awk','zeek','elk','searchsploit','nikto','gobuster','sqlmap','wireshark','tcpdump','suricata','wazuh','responder','nc','docker','aws'];
+const TOOLS=['nmap','hydra','john','hashcat','mimikatz','metasploit','burp','repeater','intruder','decoder','ghidra','strings','nuclei','aircrack-ng','airmon-ng','airodump','steghide','binwalk','git','kerberoast','virustotal','ssh','openssl','rpcclient','impacket','secretsdump','wpscan','redis-cli','mongodump','groovy','msiexec','vncviewer','volatility','autopsy','grep','awk','zeek','elk','searchsploit','nikto','gobuster','sqlmap','wireshark','tcpdump','suricata','wazuh','responder','nc','docker','aws','edr','iptables','taskkill','reg','schtasks','winpmem','malfind','netscan','restore'];
 
 const fakeUsers=[
   ['0xNyx','Elite Hacker',780],['p4wn3r','Pentester',520],['s1lv3rw0lf','Analista SOC',340],
@@ -794,7 +842,7 @@ function renderMachines(){
   app.innerHTML=
    '<h2 style="font-size:22px">Máquinas activas</h2>'
    +'<p style="color:var(--muted);font-size:13px;margin:6px 0 18px">'+MACHINES.length+' máquinas · cada una centrada en herramientas reales (nmap, Metasploit, Wireshark, Suricata, Wazuh, John the Ripper…). Cada flag suma XP. Progreso guardado en tu navegador.</p>'
-   +'<div class="filters">'+['all','M01','M02','M03','M04','M05','M06','M07','M10'].map(f=>
+   +'<div class="filters">'+['all','M01','M02','M03','M04','M05','M06','M07','M08','M10'].map(f=>
       '<button class="'+(filter===f?'on':'')+'" onclick="filter=\''+f+'\';toolFilter=\'all\';renderMachines()">'+(f==='all'?'Todas':f)+'</button>').join('')+'</div>'
    +'<div class="filters" style="margin-top:-8px"><span style="font-size:11px;color:var(--muted);align-self:center">Herramienta:</span>'
    +['all'].concat(TOOLS).map(t=>
@@ -961,15 +1009,9 @@ function runCmd(raw){
   const verb=parts[0];
   const fileArg=(parts[1]||'').replace(/^\.?\//,'');
 
-  /* flags como archivos del host, estilo HTB: cat user.txt / cat root.txt (o cualquier ruta que acabe así) */
-  if(verb==='cat'&&/(^|\/)(user|root)\.txt$|(^|\/)flag\.txt$/.test(fileArg)){
-    const kind=/user\.txt$/.test(fileArg)?'user':'root';
-    if(!pendingFlags[kind]&&shell&&m.cmds['cat']){
-      /* sin leer aún: ejecutar el 'cat' registrado de la máquina deposita la flag en el archivo */
-      m.cmds['cat'].forEach(l=>{ const fm=l.match(/VULN\{[^}]+\}/);
-        if(l.startsWith('flagU:')&&fm) pendingFlags.user=fm[0];
-        if(l.startsWith('flagR:')&&fm) pendingFlags.root=fm[0]; });
-    }
+  /* flags como archivos del host, estilo HTB: cat user.txt / cat root.txt */
+  if(verb==='cat'&&(fileArg==='user.txt'||fileArg==='root.txt')){
+    const kind=fileArg==='user.txt'?'user':'root';
     if(pendingFlags[kind]) tline(pendingFlags[kind],'flag');
     else tline('cat: '+fileArg+': No such file or directory','err');
     return;
@@ -1064,7 +1106,6 @@ function runCmd(raw){
   /* ejecutar: pistas ð¡ ocultas (hint), flags user/root ocultas en archivos */
   pendingHints=[];
   const outs=m.cmds[key];
-  const preU=pendingFlags.user, preR=pendingFlags.root;
   outs.forEach(l=>{
     if(l.startsWith('info:ð¡')){ pendingHints.push(l.slice(6).trim()); return; }
     const fm=l.match(/VULN\{[^}]+\}/);
@@ -1078,8 +1119,6 @@ function runCmd(raw){
     else if(l.startsWith('flagS:')){ cls='flag'; l=l.slice(6); }
     tline(l,cls);
   });
-  if(!preU&&pendingFlags.user) tline('# [*] flag USER guardada en user.txt — léela con: cat user.txt','dim');
-  if(!preR&&pendingFlags.root) tline('# [*] flag ROOT guardada en root.txt — léela con: cat root.txt','dim');
   if(accessGained(outs)&&!shell){
     shell={machine:m.id,user:hostUser(m)};
     tline(' ','dim');
